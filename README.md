@@ -53,8 +53,8 @@ bootstrap/
     ├── relay.log                      # 추가 전용 이벤트 로그
     ├── handoff/                       # 인수인계 노트
     │   └── .gitkeep
-    └── templates/                     # 항목별 양식 (work-end, handoff 포맷)
-        ├── work-end.md
+    └── templates/                     # 항목별 양식 (task-done, handoff 포맷)
+        ├── task-done.md
         └── handoff.md
 ```
 

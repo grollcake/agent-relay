@@ -118,9 +118,8 @@ If a correction is needed, append a new `CORRECTION` event.
 Recommended event types:
 
 - `SESSION_START`
-- `WORK_START`
-- `WORK_END`
-- `NOTE`
+- `TASK_BEGIN`
+- `TASK_DONE`
 - `HANDOFF`
 - `HANDOFF_RECEIVED`
 - `HANDOFF_CLOSED`
@@ -128,18 +127,31 @@ Recommended event types:
 
 Keep entries short.
 
-Minimal `WORK_END` format:
+Use `TASK_BEGIN` when starting a meaningful task that may need recovery if the session stops before completion.
+
+Minimal `TASK_BEGIN` format:
 
 ```text
-<timestamp> | WORK_END | agent=<agent> | result=<success|partial|failed|blocked> | files=<summary> | tests=<summary>
+<timestamp> | TASK_BEGIN | agent=<agent> | task=<MMDD-xxx> | summary=<task summary>
+```
+
+Minimal `TASK_DONE` format:
+
+```text
+<timestamp> | TASK_DONE  | agent=<agent> | task=<MMDD-xxx> | result=<success|partial|failed|blocked> | files=<summary> | tests=<summary>
 ```
 
 Use `agent=<agent>(<llm-or-version>[, <role>])`, for example `Codex(GPT-5.5)` or `Cursor(GPT-5.5, Reviewer)`. If the LLM or version is unknown, use only the agent name, for example `Codex`. Use `agent=Human` only for work performed directly by a human.
 
-Example:
+Use `task=<MMDD-xxx>` to connect `TASK_BEGIN`, `TASK_DONE`, and related `HANDOFF` events. Generate it at `TASK_BEGIN` using the local month/day plus three random lowercase letters, for example `0428-qmx`. If the same `task=` is already open in recent relay context, generate another one.
+
+`TASK_DONE` means the task attempt is closed. `result` records whether it succeeded, partially completed, failed, or is blocked.
+
+Examples:
 
 ```text
-2026-04-28T16:40:00+09:00 | WORK_END | agent=Codex(GPT-5.5) | result=success | files=src/cube/state.ts, tests/cube-state.test.ts | tests=npm test passed
+2026-04-28T16:20:00+09:00 | TASK_BEGIN | agent=Codex(GPT-5.5) | task=0428-qmx | summary="Align relay event names"
+2026-04-28T16:40:00+09:00 | TASK_DONE  | agent=Codex(GPT-5.5) | task=0428-qmx | result=success | files=src/cube/state.ts, tests/cube-state.test.ts | tests=npm test passed
 ```
 
 ## Rule 4. Handoff Only When Needed
@@ -168,19 +180,19 @@ When creating a handoff file, append a `HANDOFF` event to `relay.log` with `path
 Example:
 
 ```text
-2026-04-28T16:40:00+09:00 | HANDOFF | agent=Codex(GPT-5.5) | result=blocked | path=.agent-relay/handoff/20260428-1640-auth-refresh.md | summary="Auth refresh behavior needs follow-up analysis"
+2026-04-28T16:40:00+09:00 | HANDOFF | agent=Codex(GPT-5.5) | task=0428-qmx | result=blocked | path=.agent-relay/handoff/0428-qmx--auth-refresh.md | summary="Auth refresh behavior needs follow-up analysis"
 ```
 
-Do not assume the next agent is known. Use timestamp and topic:
+Do not assume the next agent is known. Use the task key, two hyphens, and a topic:
 
 ```text
-.agent-relay/handoff/YYYYMMDD-HHMM-<topic>.md
+.agent-relay/handoff/<task>--<topic>.md
 ```
 
 Example:
 
 ```text
-.agent-relay/handoff/20260428-1640-cube-rotation.md
+.agent-relay/handoff/0428-qmx--cube-rotation.md
 ```
 
 ## Rule 6. Preserve Durable Guidance

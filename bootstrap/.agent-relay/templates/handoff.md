@@ -1,6 +1,7 @@
 # Handoff: <topic>
 
 Date: <YYYY-MM-DD>
+Task: <MMDD-xxx>
 Related Issue: <optional issue id or title>
 
 ## What was done

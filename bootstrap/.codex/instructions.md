@@ -15,6 +15,6 @@ Then read:
 5. the last 50 lines of `.agent-relay/relay.log`
 6. relevant handoff files, if referenced
 
-After meaningful file, test, or issue changes, append one result entry to `.agent-relay/relay.log`.
+After meaningful file, test, or issue changes, append one `TASK_DONE` entry to `.agent-relay/relay.log`.
 
 When the user gives durable guidance, constraints, preferences, conventions, security rules, or "do not" rules, update `.agent-relay/GUIDANCE.md`.

@@ -159,7 +159,7 @@ Agent Relay 부트스트랩 완료.
 - .agent-relay/INDEX.md
 - .agent-relay/relay.log (timestamp 치환됨)
 - .agent-relay/handoff/
-- .agent-relay/templates/work-end.md
+- .agent-relay/templates/task-done.md
 - .agent-relay/templates/handoff.md
 - .agent-relay/GUIDANCE.md (장기 지침/제약 누적 템플릿)
 - (필요 시) .gitignore에서 .agent-relay/ 무시 규칙 제거
@@ -168,7 +168,7 @@ Agent Relay 부트스트랩 완료.
 - INDEX.md의 Project / Important Files 확인
 - 이후 사용자 장기 지침이 생기면 GUIDANCE.md에 누적
 - .agent-relay/가 Git 추적 대상인지 확인
-- 첫 의미 있는 작업 후 relay.log에 WORK_END 한 줄 남기기
+- 첫 의미 있는 작업 후 relay.log에 TASK_DONE 한 줄 남기기
 ```
 
 ---

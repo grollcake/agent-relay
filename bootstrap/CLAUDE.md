@@ -17,7 +17,7 @@ Then read:
 
 Do not re-read relay context before every message in the same active session.
 
-After meaningful work, append a short result entry to `.agent-relay/relay.log`.
+After meaningful work, append a short `TASK_DONE` entry to `.agent-relay/relay.log`.
 
 When the user gives durable guidance, constraints, preferences, conventions, security rules, or "do not" rules, update `.agent-relay/GUIDANCE.md`.
 
