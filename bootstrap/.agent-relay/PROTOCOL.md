@@ -12,11 +12,15 @@ It exists to help agents continue each other's work across:
 
 Agent Relay is intentionally small.
 
-## Core Principle
+## Core Rules
 
-Read when joining.
-Record when finishing.
-Handoff only when needed.
+1. When joining or resuming work, follow the Agent Relay read order.
+2. Choose one session agent name and use it consistently in `relay.log`.
+3. Record meaningful work in `.agent-relay/relay.log`.
+4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
+5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
+6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
+7. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
 
 ## Directory
 
@@ -40,25 +44,7 @@ Recommended structure:
 
 Agents must read recent relay context when starting or resuming work.
 
-Read `AGENTS.md` first. Then choose a session agent name before reading or writing relay entries, and use it consistently for the session.
-
-Use:
-
-```text
-<agent>(<llm-or-version>[, <role>])
-```
-
-Examples:
-
-```text
-Codex(GPT-5.5)
-Claude Code(Claude Sonnet 4.5)
-Cursor(GPT-5.5, Reviewer)
-```
-
-If the LLM or version is unknown, use only the agent name without parentheses, for example `Codex`, `Claude Code`, or `Cursor`.
-
-Use `Human` only for work performed directly by a human.
+Read `AGENTS.md` first.
 
 Read relay context when:
 
@@ -83,7 +69,31 @@ Do not re-read `relay.log` before every user message in the same active session.
 
 Within one continuous session, keep working from the current conversation context.
 
-## Rule 2. Record Results After Meaningful Work
+## Rule 2. Choose A Session Agent Name
+
+Choose a session agent name before reading or writing relay entries, and use it consistently for the session.
+
+Use:
+
+```text
+<agent>(<llm-or-version>[, <role>])
+```
+
+Examples:
+
+```text
+Codex(GPT-5.5)
+Claude Code(Claude Sonnet 4.5)
+Cursor(GPT-5.5, Reviewer)
+```
+
+If the LLM or version is unknown, use only the agent name without parentheses, for example `Codex`, `Claude Code`, or `Cursor`.
+
+Use `Human` only for work performed directly by a human.
+
+Use the session agent name in every `agent=` field.
+
+## Rule 3. Record Results After Meaningful Work
 
 After meaningful work, append a short event to `.agent-relay/relay.log`.
 
@@ -98,34 +108,6 @@ Meaningful work includes:
 - work that another agent may need later
 
 Do not log simple Q&A, brainstorming, or explanation-only conversations unless the user asks to preserve the context.
-
-## Rule 2a. Preserve Durable Guidance
-
-Update `.agent-relay/GUIDANCE.md` when the user gives a durable instruction, constraint, preference, convention, security rule, or "do not" rule that future agents should keep following.
-
-Do not update `GUIDANCE.md` for one-off task details, transient debugging notes, temporary plans, or work progress.
-
-When updating `GUIDANCE.md`, keep the entry short and stable. If the guidance came from a task conversation, also record the meaningful work result in `relay.log` when appropriate.
-
-## Rule 3. Handoff Only When Needed
-
-Create a handoff file only when the next agent cannot continue from the issue and relay log alone.
-
-Create a handoff when:
-
-- another agent or role must continue;
-- the result is `partial`, `failed`, or `blocked`;
-- tests, review, or analysis must be performed by another role;
-- important context cannot fit in a short relay log event;
-- the next agent would not be able to continue within 5 minutes.
-
-Do not create a handoff when:
-
-- the task is fully completed;
-- the result can be summarized in one short relay log entry;
-- there is no next owner.
-
-## Relay Log
 
 `relay.log` is append-only.
 
@@ -146,19 +128,7 @@ Recommended event types:
 
 Keep entries short.
 
-If the context is long, create a separate markdown file under `.agent-relay/handoff/` and reference it from `relay.log`.
-
-Use the session agent name in every `agent=`, `from=`, and `to=` field that names an agent or role.
-
-When creating a handoff file, append a `HANDOFF` event to `relay.log` with `path=<handoff-file>`.
-
-Example:
-
-```text
-2026-04-28T16:40:00+09:00 | HANDOFF | agent=Codex(GPT-5.5) | result=blocked | path=.agent-relay/handoff/20260428-1640-codex-auth-refresh.md | summary="Auth refresh behavior needs follow-up analysis"
-```
-
-## Minimal WORK_END Format
+Minimal `WORK_END` format:
 
 ```text
 <timestamp> | WORK_END | agent=<agent> | result=<success|partial|failed|blocked> | files=<summary> | tests=<summary>
@@ -172,27 +142,56 @@ Example:
 2026-04-28T16:40:00+09:00 | WORK_END | agent=Codex(GPT-5.5) | result=success | files=src/cube/state.ts, tests/cube-state.test.ts | tests=npm test passed
 ```
 
-## Handoff File Naming
+## Rule 4. Handoff Only When Needed
 
-By default, do not assume the next agent is known. Use the current session agent and topic:
+Create a handoff file only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
+
+Create a handoff when:
+
+- another agent or role must continue;
+- the result is `partial`, `failed`, or `blocked`;
+- tests, review, or analysis must be performed by another role;
+- important context cannot fit in a short relay log event.
+
+Do not create a handoff when:
+
+- the task is fully completed;
+- the result can be summarized in one short relay log entry;
+- there is no next owner.
+
+## Rule 5. Link Handoffs From Relay Log
+
+If the context is long, create a separate markdown file under `.agent-relay/handoff/` and reference it from `relay.log`.
+
+When creating a handoff file, append a `HANDOFF` event to `relay.log` with `path=<handoff-file>`.
+
+Example:
 
 ```text
-.agent-relay/handoff/YYYYMMDD-HHMM-<from-agent>-<topic>.md
+2026-04-28T16:40:00+09:00 | HANDOFF | agent=Codex(GPT-5.5) | result=blocked | path=.agent-relay/handoff/20260428-1640-auth-refresh.md | summary="Auth refresh behavior needs follow-up analysis"
+```
+
+Do not assume the next agent is known. Use timestamp and topic:
+
+```text
+.agent-relay/handoff/YYYYMMDD-HHMM-<topic>.md
 ```
 
 Example:
 
 ```text
-.agent-relay/handoff/20260428-1640-codex-cube-rotation.md
+.agent-relay/handoff/20260428-1640-cube-rotation.md
 ```
 
-If the next agent is already known, `to-<target-agent>` may be included:
+## Rule 6. Preserve Durable Guidance
 
-```text
-.agent-relay/handoff/YYYYMMDD-HHMM-<from-agent>-to-<target-agent>-<topic>.md
-```
+Update `.agent-relay/GUIDANCE.md` when the user gives a durable instruction, constraint, preference, convention, security rule, or "do not" rule that future agents should keep following.
 
-## Safety
+Do not update `GUIDANCE.md` for one-off task details, transient debugging notes, temporary plans, or work progress.
+
+When updating `GUIDANCE.md`, keep the entry short and stable. If the guidance came from a task conversation, also record the meaningful work result in `relay.log` when appropriate.
+
+## Rule 7. Keep Sensitive Data Out
 
 Never store the following in `.agent-relay/`:
 
@@ -204,7 +203,9 @@ Never store the following in `.agent-relay/`:
 - sensitive internal information
 - production secrets
 
-## Git Policy
+## Other Rules
+
+### Git Policy
 
 Commit `.agent-relay/` to Git.
 

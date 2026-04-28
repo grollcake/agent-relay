@@ -49,15 +49,22 @@
 - **없으면**: `bootstrap/AGENTS.md`를 그대로 `<project>/AGENTS.md`로 복사합니다.
 - **이미 있으면**: 덮어쓰지 말고 **머지**합니다.
   - 기존 내용 전체를 보존합니다.
-  - `bootstrap/AGENTS.md`에서 다음 5개 섹션을 추가합니다.
-    - `Core Rules`
-    - `When Starting a New Session`
-    - `During Work`
-    - `After Meaningful Work`
-    - `Handoff`
-  - 동일한 주제의 섹션이 이미 있으면, 누락된 항목만 보강합니다.
+  - 기존 파일에는 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션만 추가합니다.
+    ```markdown
+    ## Agent Relay
+
+    This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
+
+    1. When joining or resuming work, follow the Agent Relay read order in `.agent-relay/PROTOCOL.md`.
+    2. Choose one session agent name and use it consistently in `relay.log`.
+    3. Record meaningful work in `.agent-relay/relay.log`.
+    4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
+    5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
+    6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
+    7. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
+    ```
+  - 동일한 Agent Relay 섹션이나 포인터가 이미 있으면 중복 추가하지 않고 누락된 문장만 보강합니다.
   - 기존 프로젝트의 규칙·역할·지시문을 임의로 삭제하거나 재작성하지 않습니다.
-  - 머지 결과 상단에 짧은 안내 한 줄을 둡니다. 예: `This project also follows Agent Relay (see .agent-relay/PROTOCOL.md).`
 
 ### 3. 도구별 지시 파일 처리 (선택)
 

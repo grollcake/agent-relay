@@ -6,11 +6,15 @@ Agent Relay는 이종 AI 코딩 에이전트(Claude Code, Codex CLI, Cursor 등)
 
 ---
 
-## 핵심 3원칙
+## 핵심지침
 
-1. **Read when joining** — 합류/재개 시 최근 맥락을 읽는다.
-2. **Record when finishing** — 의미 있는 작업 후 `relay.log`에 기록한다.
-3. **Handoff only when needed** — 다음 에이전트가 5분 안에 못 이어받을 때만 handoff를 쓴다.
+1. 작업에 합류하거나 재개할 때는 `.agent-relay/PROTOCOL.md`의 Agent Relay 읽기 순서를 따른다.
+2. 세션 에이전트 이름을 하나 정하고 `relay.log`에서 일관되게 쓴다.
+3. 의미 있는 작업은 `.agent-relay/relay.log`에 기록한다.
+4. 다음 에이전트가 이슈와 `relay.log`만 보고 5분 안에 이어받기 어려울 때만 handoff를 만든다.
+5. handoff를 만들 때는 긴 맥락을 파일로 분리하고 `relay.log`에 `path=`로 연결한다.
+6. 오래 유지될 사용자 지침, 제약, 선호, 관례, 보안 규칙, 금지사항만 `.agent-relay/GUIDANCE.md`에 기록한다.
+7. `.agent-relay/`에 비밀정보, 자격증명, 고객정보, 민감한 운영정보를 저장하지 않는다.
 
 자세한 사양은 [`bootstrap/.agent-relay/PROTOCOL.md`](bootstrap/.agent-relay/PROTOCOL.md),
 한국어 가이드는 [`PROTOCOL-GUIDE.md`](PROTOCOL-GUIDE.md)를 참고하세요.
@@ -27,7 +31,7 @@ Agent Relay는 이종 AI 코딩 에이전트(Claude Code, Codex CLI, Cursor 등)
 github.com/grollcake/agent-relay 를 내 프로젝트에 반영해줘
 ```
 
-> **🤖 AI 에이전트에게**: 당신이 AI 에이전트이고 사용자로부터 이 저장소를 본인 프로젝트에 반영해달라는 요청을 받았다면, [`BOOTSTRAP.md`](BOOTSTRAP.md)를 그대로 따라 부트스트랩을 수행하세요. 기존 `AGENTS.md`는 덮어쓰지 말고 Agent Relay 섹션만 머지하고, 이미 `.agent-relay/`가 있으면 진행을 멈추고 사용자에게 보고하세요. `bootstrap/` 트리는 목적지 경로를 그대로 미러링한 복사 원본입니다.
+> **🤖 AI 에이전트에게**: 당신이 AI 에이전트이고 사용자로부터 이 저장소를 본인 프로젝트에 반영해달라는 요청을 받았다면, [`BOOTSTRAP.md`](BOOTSTRAP.md)를 그대로 따라 부트스트랩을 수행하세요. 기존 `AGENTS.md`는 덮어쓰지 말고 짧은 Agent Relay 섹션만 추가하세요. 전체 `bootstrap/AGENTS.md`는 대상 프로젝트에 `AGENTS.md`가 없을 때만 복사합니다. 이미 `.agent-relay/`가 있으면 진행을 멈추고 사용자에게 보고하세요. `bootstrap/` 트리는 목적지 경로를 그대로 미러링한 복사 원본입니다.
 
 ---
 
@@ -77,4 +81,4 @@ AGENTS.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
 
 - [`BOOTSTRAP.md`](BOOTSTRAP.md) — 에이전트용 부트스트랩 절차 (단계별, 머지/중단 분기 포함)
 - [`PROTOCOL-GUIDE.md`](PROTOCOL-GUIDE.md) — 한국어 가이드 (운영 원칙, 부트스트랩 절차, 파일별 역할 정리)
-- [`bootstrap/.agent-relay/PROTOCOL.md`](bootstrap/.agent-relay/PROTOCOL.md) — 영문 정식 사양 (Rule 1~3, 이벤트 타입, 안전 규칙)
+- [`bootstrap/.agent-relay/PROTOCOL.md`](bootstrap/.agent-relay/PROTOCOL.md) — 영문 정식 사양 (핵심지침, 이벤트 타입, 기타 규칙)

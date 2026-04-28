@@ -21,4 +21,4 @@ After meaningful work, append a short result entry to `.agent-relay/relay.log`.
 
 When the user gives durable guidance, constraints, preferences, conventions, security rules, or "do not" rules, update `.agent-relay/GUIDANCE.md`.
 
-Create a handoff only when another agent or role cannot continue from the issue and log alone.
+Create a handoff only when the next agent cannot continue from the issue and relay log alone.

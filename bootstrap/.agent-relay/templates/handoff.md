@@ -1,7 +1,5 @@
 # Handoff: <topic>
 
-From: <Agent Name>
-To: <Next Agent Name or unknown>
 Date: <YYYY-MM-DD>
 Related Issue: <optional issue id or title>
 
