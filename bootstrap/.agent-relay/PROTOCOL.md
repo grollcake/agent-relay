@@ -33,6 +33,7 @@ Recommended structure:
 ```text
 .agent-relay/
 ├── PROTOCOL.md
+├── VERSION
 ├── INDEX.md
 ├── GUIDANCE.md
 ├── relay.log
@@ -226,3 +227,21 @@ Agent Relay is project handoff state. The next agent should receive the same pro
 Do not add `.agent-relay/` to `.gitignore`. If an ignore rule already exists, remove it.
 
 Never store secrets or sensitive data in `.agent-relay/`.
+
+### Update Policy
+
+When the user asks to update, refresh, or sync Agent Relay, read `.agent-relay/VERSION` first.
+
+Treat that file as the installed Agent Relay version. Compare this project with the latest `main` branch of the default upstream repository: `https://github.com/grollcake/agent-relay`.
+
+Update managed protocol files from upstream only after preserving project-specific state:
+
+- preserve `.agent-relay/GUIDANCE.md`;
+- preserve `.agent-relay/relay.log`;
+- preserve `.agent-relay/handoff/`;
+- preserve project-specific content in `.agent-relay/INDEX.md`;
+- preserve non-Agent-Relay instructions in `AGENTS.md`, `CLAUDE.md`, `.codex/instructions.md`, and `.cursor/rules/agent-relay.mdc`.
+
+For `AGENTS.md`, compare the current Agent Relay section with the upstream `bootstrap/AGENTS.md` Agent Relay section. Replace or patch only the Agent Relay section. Do not delete unrelated project rules. If the section is mixed with local instructions and cannot be safely separated, stop and report the conflict.
+
+After a successful update, update `.agent-relay/VERSION` to the latest upstream `VERSION` value, then append a short `TASK_DONE` entry to `relay.log`.

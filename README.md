@@ -31,7 +31,17 @@ Agent Relay는 이종 AI 코딩 에이전트(Claude Code, Codex CLI, Cursor 등)
 github.com/grollcake/agent-relay 를 내 프로젝트에 반영해줘
 ```
 
-> **🤖 AI 에이전트에게**: 당신이 AI 에이전트이고 사용자로부터 이 저장소를 본인 프로젝트에 반영해달라는 요청을 받았다면, [`BOOTSTRAP.md`](BOOTSTRAP.md)를 그대로 따라 부트스트랩을 수행하세요. 기존 `AGENTS.md`는 덮어쓰지 말고 짧은 Agent Relay 섹션만 추가하세요. 전체 `bootstrap/AGENTS.md`는 대상 프로젝트에 `AGENTS.md`가 없을 때만 복사합니다. 이미 `.agent-relay/`가 있으면 진행을 멈추고 사용자에게 보고하세요. `bootstrap/` 트리는 목적지 경로를 그대로 미러링한 복사 원본입니다.
+> **🤖 AI 에이전트에게**: 당신이 AI 에이전트이고 사용자로부터 이 저장소를 본인 프로젝트에 반영해달라는 요청을 받았다면, [`BOOTSTRAP.md`](BOOTSTRAP.md)를 그대로 따라 부트스트랩을 수행하세요. 기존 `AGENTS.md`는 덮어쓰지 말고 짧은 Agent Relay 섹션만 추가하세요. 전체 `bootstrap/AGENTS.md`는 대상 프로젝트에 `AGENTS.md`가 없을 때만 복사합니다. 이미 `.agent-relay/`가 있으면 새 설치가 아니라 업데이트 요청인지 확인하고, 업데이트 요청이면 `.agent-relay/VERSION`을 읽은 뒤 기본 upstream `https://github.com/grollcake/agent-relay`와 비교하세요. `bootstrap/` 트리는 목적지 경로를 그대로 미러링한 복사 원본입니다.
+
+### 업데이트하기
+
+이미 Agent Relay가 적용된 프로젝트에서는 다음처럼 요청할 수 있습니다.
+
+```text
+agent-relay 최신화해줘
+```
+
+에이전트는 대상 프로젝트의 `.agent-relay/VERSION`을 읽고 기본 upstream `https://github.com/grollcake/agent-relay`와 비교합니다. `AGENTS.md`는 프로젝트 고유 지침을 보존하고 Agent Relay 섹션만 최신 `bootstrap/AGENTS.md`와 비교해 갱신합니다. `GUIDANCE.md`, `relay.log`, `handoff/`는 프로젝트별 상태이므로 덮어쓰지 않습니다.
 
 ---
 
@@ -48,6 +58,7 @@ bootstrap/
 │       └── agent-relay.mdc            # .cursor/ 디렉토리가 있으면 신규 (선택)
 └── .agent-relay/                      # 프로젝트 루트로 복사 (필수)
     ├── PROTOCOL.md                    # Agent Relay 규칙(필수)
+    ├── VERSION                        # 설치 버전
     ├── INDEX.md                       # 프로젝트 지도(권장)
     ├── GUIDANCE.md                    # 장기 지침/제약 누적 템플릿
     ├── relay.log                      # 추가 전용 이벤트 로그

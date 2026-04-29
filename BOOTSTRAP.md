@@ -13,9 +13,10 @@
 
 - `<project>/AGENTS.md` 존재 여부
 - `<project>/.agent-relay/` 디렉토리 존재 여부
+- `<project>/.agent-relay/VERSION` 존재 여부 (이미 설치된 경우 업데이트 기준)
 - `<project>/CLAUDE.md`, `<project>/.codex/instructions.md` 존재 여부 (있으면 머지 대상)
 - `<project>/.cursor/` 디렉토리 존재 여부 (있으면 룰 파일 신규 추가 대상)
-- `<project>/README.md` 존재 여부 (없어도 진행 가능, 단계 6 참고)
+- `<project>/README.md` 존재 여부 (없어도 진행 가능, 단계 7 참고)
 
 ---
 
@@ -38,6 +39,7 @@
 
 - **이미 있으면**: **부트스트랩을 중단**하고 사용자에게 보고합니다.
   - 이미 Agent Relay가 적용된 프로젝트일 가능성이 큽니다.
+  - 사용자가 "최신화", "업데이트", "sync"를 요청한 경우에는 새 설치가 아니라 아래 "업데이트 절차"를 따릅니다.
   - 사용자 확인 없이 기존 `AGENTS.md`, `relay.log`, `handoff/`, `INDEX.md`를 덮어쓰거나 머지하지 않습니다.
   - 사용자가 명시적으로 "재초기화" 또는 "특정 파일만 갱신"을 요청한 경우에만, 해당 범위로 한정해 진행합니다.
 - **없으면**: 이후 단계로 진행합니다.
@@ -98,7 +100,13 @@
 - `agent=Human`은 사용자가 직접 부트스트랩한 경우에만 사용합니다.
 - 에이전트가 자동 부트스트랩한 경우 0단계에서 정한 세션 에이전트 이름을 사용합니다. 예: `agent=Codex(GPT-5.5)`.
 
-### 6. `INDEX.md` placeholder 채우기
+### 6. `VERSION` 확인
+
+`<project>/.agent-relay/VERSION`은 Agent Relay 설치 버전만 담습니다.
+
+값은 이 저장소 루트 `VERSION`의 값과 같아야 합니다. 기본 upstream은 `https://github.com/grollcake/agent-relay`의 `main` 브랜치입니다.
+
+### 7. `INDEX.md` placeholder 채우기
 
 `<project>/.agent-relay/INDEX.md`의 placeholder를 현재 프로젝트 정보로 채웁니다.
 
@@ -108,7 +116,7 @@
 | `<repo-name>` | `git config --get remote.origin.url`에서 추출하거나, 없으면 디렉토리명 |
 | `Primary Purpose` | 프로젝트의 장기 목적을 `README.md`에서 추출하거나 사용자에게 한 줄 요청 |
 
-### 7. `GUIDANCE.md` 안내
+### 8. `GUIDANCE.md` 안내
 
 `GUIDANCE.md`는 기본 템플릿으로 복사됩니다. 부트스트랩 직후 억지로 채우지 않습니다.
 
@@ -123,7 +131,7 @@
 - 보안·개인정보 규칙
 - 코드/테스트/브랜치/작업 관례
 
-### 8. 보안 점검
+### 9. 보안 점검
 
 다음 정보는 `<project>/.agent-relay/` 어디에도 저장하지 않습니다.
 
@@ -134,7 +142,7 @@
 
 부트스트랩 직후 `relay.log`, `INDEX.md`, `GUIDANCE.md`에 위 정보가 들어가지 않았는지 한 번 점검합니다.
 
-### 9. Git 정책 확인
+### 10. Git 정책 확인
 
 `<project>`가 Git 저장소라면 `.agent-relay/`는 커밋 대상입니다.
 
@@ -156,6 +164,7 @@ Agent Relay 부트스트랩 완료.
 - (선택) CLAUDE.md / .codex/instructions.md 머지
 - (선택) .cursor/rules/agent-relay.mdc 신규 추가
 - .agent-relay/PROTOCOL.md
+- .agent-relay/VERSION (설치 버전)
 - .agent-relay/INDEX.md
 - .agent-relay/relay.log (timestamp 치환됨)
 - .agent-relay/handoff/
@@ -170,6 +179,52 @@ Agent Relay 부트스트랩 완료.
 - .agent-relay/가 Git 추적 대상인지 확인
 - 첫 의미 있는 작업 후 relay.log에 TASK_DONE 한 줄 남기기
 ```
+
+---
+
+## 업데이트 절차
+
+사용자가 이미 Agent Relay가 적용된 프로젝트에서 "agent-relay 최신화해줘", "업데이트해줘", "sync 해줘"처럼 요청하면 새 부트스트랩을 하지 않고 다음 절차를 따릅니다.
+
+### 1. 설치 버전 읽기
+
+`<project>/.agent-relay/VERSION`을 읽습니다.
+
+- 없으면 설치 버전을 알 수 없으므로 중단하고 사용자에게 보고합니다.
+- 있으면 그 값을 현재 설치 버전으로 보고, 기본 upstream `https://github.com/grollcake/agent-relay`의 `main` 브랜치와 비교합니다.
+
+### 2. upstream 확보와 비교
+
+기본 upstream의 최신 `main`을 임시 위치에 가져와 현재 프로젝트와 비교합니다.
+
+- 현재 프로젝트 파일과 최신 upstream을 직접 비교하되, 프로젝트별 내용은 보수적으로 보존합니다.
+
+### 3. 파일별 업데이트 정책
+
+| 대상 | 업데이트 방식 |
+|---|---|
+| `AGENTS.md` | 최신 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션과 비교해 현재 파일의 Agent Relay 섹션만 교체 또는 보강 |
+| `.agent-relay/PROTOCOL.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
+| `.agent-relay/templates/` | 템플릿 파일은 최신 upstream과 비교해 갱신 |
+| `.agent-relay/VERSION` | 성공 후 최신 upstream의 `VERSION` 값으로 갱신 |
+| `CLAUDE.md`, `.codex/instructions.md`, `.cursor/rules/agent-relay.mdc` | 존재하는 경우 Agent Relay 포인터만 비교해 보강 |
+| `.agent-relay/INDEX.md` | 프로젝트별 지도이므로 덮어쓰지 않음. 새 권장 섹션이 있으면 사용자 확인 후 보강 |
+| `.agent-relay/GUIDANCE.md` | 덮어쓰지 않음 |
+| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 업데이트 완료 후 `TASK_DONE` 한 줄만 추가 |
+| `.agent-relay/handoff/` | 덮어쓰지 않음 |
+
+### 4. `AGENTS.md` 머지 규칙
+
+`AGENTS.md`는 프로젝트별 지시가 가장 많이 섞이는 파일이므로 다음 원칙을 따릅니다.
+
+- 기존 프로젝트 규칙, 역할, 금지사항, 빌드/테스트 지시를 삭제하지 않습니다.
+- `## Agent Relay` 섹션이 있으면 그 섹션만 최신 `bootstrap/AGENTS.md`의 `## Agent Relay` 섹션과 비교합니다.
+- Agent Relay 포인터만 있고 섹션이 없으면 최신 섹션을 추가하되 중복 문장은 제거합니다.
+- Agent Relay 섹션 안에 프로젝트 고유 지시가 섞여 있어 자동 분리가 어렵다면 파일을 바꾸지 않고 충돌로 보고합니다.
+
+### 5. 완료 보고
+
+업데이트가 끝나면 변경 파일, 보존한 파일, 충돌 또는 수동 확인이 필요한 파일, 업데이트 전후 버전을 보고합니다.
 
 ---
 
