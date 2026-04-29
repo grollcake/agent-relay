@@ -10,7 +10,7 @@ Agent Relay는 이종 AI 코딩 에이전트(Claude Code, Codex CLI, Cursor 등)
 
 1. 작업에 합류하거나 재개할 때는 `.agent-relay/PROTOCOL.md`의 Agent Relay 읽기 순서를 따른다.
 2. 세션 에이전트 이름을 하나 정하고 `relay.log`에서 일관되게 쓴다.
-3. 의미 있는 작업은 `.agent-relay/relay.log`에 기록한다.
+3. 의미 있는 작업은 시작 전 `TASK_BEGIN`, 완료 후 `TASK_DONE`으로 `.agent-relay/relay.log`에 기록한다.
 4. 다음 에이전트가 이슈와 `relay.log`만 보고 5분 안에 이어받기 어려울 때만 handoff를 만든다.
 5. handoff를 만들 때는 긴 맥락을 파일로 분리하고 `relay.log`에 `path=`로 연결한다.
 6. 오래 유지될 사용자 지침, 제약, 선호, 관례, 보안 규칙, 금지사항만 `.agent-relay/GUIDANCE.md`에 기록한다.
@@ -64,7 +64,8 @@ bootstrap/
     ├── relay.log                      # 추가 전용 이벤트 로그
     ├── handoff/                       # 인수인계 노트
     │   └── .gitkeep
-    └── templates/                     # 항목별 양식 (task-done, handoff 포맷)
+    └── templates/                     # 항목별 양식 (task-begin, task-done, handoff 포맷)
+        ├── task-begin.md
         ├── task-done.md
         └── handoff.md
 ```

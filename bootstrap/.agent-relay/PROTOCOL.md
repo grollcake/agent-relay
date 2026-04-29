@@ -16,7 +16,7 @@ Agent Relay is intentionally small.
 
 1. When joining or resuming work, follow the Agent Relay read order.
 2. Choose one session agent name and use it consistently in `relay.log`.
-3. Record meaningful work in `.agent-relay/relay.log`.
+3. For meaningful work, append `TASK_BEGIN` before starting and `TASK_DONE` after finishing.
 4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
 5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
 6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
@@ -94,9 +94,9 @@ Use `Human` only for work performed directly by a human.
 
 Use the session agent name in every `agent=` field.
 
-## Rule 3. Record Results After Meaningful Work
+## Rule 3. Record Meaningful Work With Begin And Done
 
-After meaningful work, append a short event to `.agent-relay/relay.log`.
+For meaningful work, append a short `TASK_BEGIN` event to `.agent-relay/relay.log` before starting, then append `TASK_DONE` after finishing.
 
 Meaningful work includes:
 
@@ -126,9 +126,11 @@ Recommended event types:
 - `HANDOFF_CLOSED`
 - `CORRECTION`
 
-Keep entries short.
+Keep entries short. Do not copy the user's full prompt into `TASK_BEGIN`; summarize the task.
 
-Use `TASK_BEGIN` when starting a meaningful task that may need recovery if the session stops before completion.
+Use `TASK_BEGIN` before changing files, running tests, doing a non-trivial investigation, or starting any task that may need recovery if the session stops before completion.
+
+If the task is completed immediately before a `TASK_BEGIN` can be written, append both `TASK_BEGIN` and `TASK_DONE` afterward, in that order, using the same `task=` key.
 
 Minimal `TASK_BEGIN` format:
 
@@ -244,4 +246,4 @@ Update managed protocol files from upstream only after preserving project-specif
 
 For `AGENTS.md`, compare the current Agent Relay section with the upstream `bootstrap/AGENTS.md` Agent Relay section. Replace or patch only the Agent Relay section. Do not delete unrelated project rules. If the section is mixed with local instructions and cannot be safely separated, stop and report the conflict.
 
-After a successful update, update `.agent-relay/VERSION` to the latest upstream `VERSION` value, then append a short `TASK_DONE` entry to `relay.log`.
+After a successful update, update `.agent-relay/VERSION` to the latest upstream `VERSION` value, then append short `TASK_BEGIN` and `TASK_DONE` entries to `relay.log`.

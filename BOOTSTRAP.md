@@ -59,7 +59,7 @@
 
     1. When joining or resuming work, follow the Agent Relay read order in `.agent-relay/PROTOCOL.md`.
     2. Choose one session agent name and use it consistently in `relay.log`.
-    3. Record meaningful work in `.agent-relay/relay.log`.
+    3. For meaningful work, append `TASK_BEGIN` to `.agent-relay/relay.log` before starting and `TASK_DONE` after finishing.
     4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
     5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
     6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
@@ -168,6 +168,7 @@ Agent Relay 부트스트랩 완료.
 - .agent-relay/INDEX.md
 - .agent-relay/relay.log (timestamp 치환됨)
 - .agent-relay/handoff/
+- .agent-relay/templates/task-begin.md
 - .agent-relay/templates/task-done.md
 - .agent-relay/templates/handoff.md
 - .agent-relay/GUIDANCE.md (장기 지침/제약 누적 템플릿)
@@ -177,7 +178,7 @@ Agent Relay 부트스트랩 완료.
 - INDEX.md의 Project / Important Files 확인
 - 이후 사용자 장기 지침이 생기면 GUIDANCE.md에 누적
 - .agent-relay/가 Git 추적 대상인지 확인
-- 첫 의미 있는 작업 후 relay.log에 TASK_DONE 한 줄 남기기
+- 첫 의미 있는 작업부터 relay.log에 TASK_BEGIN / TASK_DONE 쌍으로 남기기
 ```
 
 ---
@@ -210,7 +211,7 @@ Agent Relay 부트스트랩 완료.
 | `CLAUDE.md`, `.codex/instructions.md`, `.cursor/rules/agent-relay.mdc` | 존재하는 경우 Agent Relay 포인터만 비교해 보강 |
 | `.agent-relay/INDEX.md` | 프로젝트별 지도이므로 덮어쓰지 않음. 새 권장 섹션이 있으면 사용자 확인 후 보강 |
 | `.agent-relay/GUIDANCE.md` | 덮어쓰지 않음 |
-| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 업데이트 완료 후 `TASK_DONE` 한 줄만 추가 |
+| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 업데이트 작업을 `TASK_BEGIN` / `TASK_DONE` 쌍으로 추가 |
 | `.agent-relay/handoff/` | 덮어쓰지 않음 |
 
 ### 4. `AGENTS.md` 머지 규칙
