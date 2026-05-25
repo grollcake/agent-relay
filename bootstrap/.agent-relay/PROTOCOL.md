@@ -49,10 +49,14 @@ Within one continuous session, do not reread `relay.log` before every message.
 ```
 
 Use KST `YYYY-MM-DDTHH:MM:SS`, four random lowercase letters for `task-id`, and
-only `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE`. PM direct flow is
-`REQUEST -> RUN_DONE`; Standard flow is `REQUEST -> PLAN -> RUN -> REVIEW ->
-DONE`. Spaces around `role` are for alignment only. Preserve older event lines
-even if their format differs.
+only `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`. PM
+direct flow is `REQUEST -> RUN_DONE`; Standard flow is
+`REQUEST -> PLAN -> RUN_ST -> RUN_ED -> REVIEW -> DONE`. Spaces around `role`
+are for alignment only. Preserve older event lines even if their format differs.
+
+`RUN_ST` marks run start. Executor appends it when starting `RUN-<NN>`. No
+`path` required. `RUN_ED` marks run completion. Executor appends it with required
+`path` after writing `RUN-<NN>.md`.
 
 ## Round Artifacts
 
@@ -74,23 +78,26 @@ events; `<SLUG>` identifies run artifacts. Use the matching template in
 Artifact creation and `relay.log` event append are separate required actions. A
 stage is complete only after both its artifact is written and its matching event
 is appended. The artifact author appends the matching event: Planner appends
-`PLAN` and `REVIEW`, Executor appends `RUN`, and PM appends `REQUEST`,
-`RUN_DONE`, and the final `DONE` after user approval. PM verifies the previous
-event exists before delegating the next stage.
+`PLAN` and `REVIEW`, Executor appends `RUN_ST` and `RUN_ED`, and PM appends
+`REQUEST`, `RUN_DONE`, and the final `DONE` after user approval. PM verifies the
+previous event exists before delegating the next stage.
 
 ## Standard Pipeline
 
 1. PM classifies the request.
 2. Planner writes `PLAN`.
-3. Executor implements, validates, and writes `RUN-01`.
-4. Planner reviews and writes `REVIEW-01`.
-5. If there is no `blocker`, Planner writes `DONE`.
-6. PM reports result, nits, risks, and `DONE` path to the user.
-7. After explicit user approval, PM appends the `DONE` event.
-8. After `DONE` approval, PM may propose `.agent-relay/GUIDANCE.md` updates or
+3. PM delegates to Executor.
+4. Executor appends `RUN_ST`, implements, validates, writes `RUN-01`, and appends
+   `RUN_ED`.
+5. Planner reviews and writes `REVIEW-01`.
+6. If there is no `blocker`, Planner writes `DONE`.
+7. PM reports result, nits, risks, and `DONE` path to the user.
+8. After explicit user approval, PM appends the `DONE` event.
+9. After `DONE` approval, PM may propose `.agent-relay/GUIDANCE.md` updates or
    `.agent-relay/lesson-learned/` additions. Add only items the user accepts.
-9. If there is a `blocker`, repeat `RUN-<NN>` and matching `REVIEW-<NN>`.
-10. If blockers remain after `REVIEW-03`, PM asks the user to choose retry,
+10. If there is a `blocker`, Executor appends `RUN_ST` again and repeat
+    `RUN-<NN>` and matching `REVIEW-<NN>`.
+11. If blockers remain after `REVIEW-03`, PM asks the user to choose retry,
     plan revision, limited acceptance, or stop.
 
 `Trivial` work closes with `RUN_DONE` without completion approval. If it reveals

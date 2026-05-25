@@ -122,10 +122,12 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단한�
 
 - `timestamp`는 KST 기준 `YYYY-MM-DDTHH:MM:SS` 형식으로 기록한다.
 - `task-id`는 무작위 소문자 영문 4글자를 쓴다.
-- 이벤트는 `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE`만 쓴다.
+- 이벤트는 `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`만 쓴다.
 - PM 직접 처리 흐름은 `REQUEST → RUN_DONE`이다.
-- 표준 처리 흐름은 `REQUEST → PLAN → RUN → REVIEW → DONE`이다.
+- 표준 처리 흐름은 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`이다.
 - `role` 주변 공백은 정렬용이며 의미가 없다.
+- `RUN_ST`는 Executor가 `RUN-<NN>` 착수 시 기록한다. `path` 없음.
+- `RUN_ED`는 Executor가 `RUN-<NN>.md` 작성 후 기록한다. `path` 필수.
 
 ---
 
@@ -150,7 +152,7 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단한�
 - 사용자가 명시적으로 승인하기 전에는 PM이 `DONE` 이벤트를 기록하여 작업을 종료할 수 없다.
 - 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록한다.
 - 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업이다. 각 단계는 산출물 작성과 해당 이벤트 추가가 모두 끝나야 완료된 것으로 본다.
-- 산출물 작성자가 해당 이벤트를 추가한다. Planner는 `PLAN`/`REVIEW`, Executor는 `RUN`, PM은 `REQUEST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록한다.
+- 산출물 작성자가 해당 이벤트를 추가한다. Planner는 `PLAN`/`REVIEW`, Executor는 `RUN_ST`/`RUN_ED`, PM은 `REQUEST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록한다.
 - PM은 다음 단계 위임 전에 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인한다.
 
 ---
@@ -161,13 +163,14 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단한�
 2. 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않는다.
 3. `Trivial`이면 PM이 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫는다.
 4. `Standard`이면 Planner가 `PLAN`을 작성한다.
-5. Executor는 `PLAN`, 성공 기준, 범위를 받아 구현하고 `RUN-01`을 쓴다.
-6. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 쓴다.
-7. `blocker`가 없으면 Planner가 `DONE` 산출물을 쓴다. PM은 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청한다.
-8. 사용자가 명시적으로 승인한 뒤에만 PM이 `DONE` 이벤트를 기록하여 작업을 닫는다.
-9. `DONE` 승인을 받은 PM은 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안한다. 사용자가 수락한 항목만 기록한다.
-10. `blocker`가 있으면 Executor가 다음 `RUN`을, Planner가 다음 `REVIEW`를 쓴다.
-11. `REVIEW-03`까지도 `blocker`가 남으면 PM은 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청한다.
+5. PM이 Executor에게 위임한다.
+6. Executor는 착수 시 `RUN_ST`를 기록하고, `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록한다.
+7. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 쓴다.
+8. `blocker`가 없으면 Planner가 `DONE` 산출물을 쓴다. PM은 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청한다.
+9. 사용자가 명시적으로 승인한 뒤에만 PM이 `DONE` 이벤트를 기록하여 작업을 닫는다.
+10. `DONE` 승인을 받은 PM은 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안한다. 사용자가 수락한 항목만 기록한다.
+11. `blocker`가 있으면 Executor가 다음 라운드에서 `RUN_ST` → `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 쓴다.
+12. `REVIEW-03`까지도 `blocker`가 남으면 PM은 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청한다.
 
 `Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 PM은 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가한다.
 
