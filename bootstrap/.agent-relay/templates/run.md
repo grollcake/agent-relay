@@ -2,7 +2,7 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-Executor: <executor>
+Runner: <runner>
 Plan: <path-to-plan>
 
 ## Changes
@@ -22,6 +22,6 @@ Plan: <path-to-plan>
 
 - <risk or none>
 
-## Out Of Scope Returned To PM
+## Out Of Scope Returned To Leader
 
 - <item or none>

@@ -23,4 +23,4 @@ Accepted Review: <path-to-review>
 
 ## User Approval Required
 
-PM may append the final `DONE` event only after explicit user approval.
+Leader may append the final `DONE` event only after explicit user approval.

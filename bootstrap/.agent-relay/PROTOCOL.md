@@ -5,13 +5,13 @@ details belong in the repository README and guide.
 
 ## Roles
 
-- `PM`: user communication, classification, scope and risk decisions,
+- `Leader`: user communication, classification, scope and risk decisions,
   delegation, result interpretation, and final report. Not a passive relay.
 - `Planner`: writes `PLAN`, reviews `RUN`, and writes `DONE` when accepted.
-- `Executor`: implements `PLAN`, validates work, and writes `RUN`. Returns
-  ambiguity to the PM without expanding scope.
+- `Runner`: implements `PLAN`, validates work, and writes `RUN`. Returns
+  ambiguity to the Leader without expanding scope.
 
-Planner and Executor communicate only through the PM.
+Planner and Runner communicate only through the Leader.
 
 ## Read Before Work
 
@@ -19,7 +19,7 @@ When joining or resuming, read `AGENTS.md`, this file, `GUIDANCE.md`,
 `LESSON-LEARNED.md`, existing `lesson-learned/` records, the last 50 lines of
 `relay.log`, and latest open-round artifacts if any.
 
-Before starting recordable work, PM, Planner, and Executor must reread:
+Before starting recordable work, Leader, Planner, and Runner must reread:
 
 1. `.agent-relay/GUIDANCE.md`
 2. `.agent-relay/LESSON-LEARNED.md`
@@ -34,10 +34,10 @@ Within one continuous session, do not reread `relay.log` before every message.
 
 - Excluded from records: simple Q&A, short explanation, or brainstorming.
 - `Trivial`: minor localized edit, Agent Relay bootstrap, or Agent Relay update
-  sync. PM records `REQUEST -> RUN_DONE`; no completion approval is required.
+  sync. Leader records `REQUEST -> RUN_DONE`; no completion approval is required.
   Bootstrap and update are not excluded as meta work.
 - `Standard`: multi-file work, design judgment, or work needing verification.
-  Use Planner -> Executor -> Planner review, preferably in the background. PM
+  Use Planner -> Runner -> Planner review, preferably in the background. Leader
   stays responsible for user replies during delegation; do not poll or sleep to
   wait for completion.
 
@@ -50,17 +50,17 @@ Within one continuous session, do not reread `relay.log` before every message.
 ```
 
 Use KST `YYYY-MM-DDTHH:MM:SS`, four random lowercase letters for `task-id`, and
-only `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`. PM
+only `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`. Leader
 creates one `task-id` at `REQUEST` and reuses it through `DONE` for the same
-Standard work. Use a new `task-id` for each new `REQUEST`. PM direct flow is
+Standard work. Use a new `task-id` for each new `REQUEST`. Leader direct flow is
 `REQUEST -> RUN_DONE`; Standard flow is
 `REQUEST -> PLAN -> RUN_ST -> RUN_ED -> REVIEW -> DONE`. Pad `event` and `role`
 to fixed width of 8 characters with trailing spaces. Preserve older event lines
 even if their format differs.
 
-`RUN_ST` marks run start. PM appends it when delegating to Executor. No `path`
+`RUN_ST` marks run start. Leader appends it when delegating to Runner. No `path`
 required; include `RUN-<NN>` in `summary`. `RUN_ED` marks run completion.
-Executor appends it with required `path` after writing `RUN-<NN>.md`. Each round
+Runner appends it with required `path` after writing `RUN-<NN>.md`. Each round
 `<NN>` is one `RUN_ST` paired with the next `RUN_ED`. On `blocker`, append
 another `RUN_ST`/`RUN_ED` pair under the same `task-id`.
 
@@ -74,10 +74,10 @@ Store all round artifacts in `.agent-relay/runs/` using one stable
 - `.agent-relay/runs/<YYYYMMDD>-<SLUG>-REVIEW-<NN>.md`
 - `.agent-relay/runs/<YYYYMMDD>-<SLUG>-DONE.md`
 
-`<NN>` starts at `01`. Never overwrite an older round. Executor never writes
+`<NN>` starts at `01`. Never overwrite an older round. Runner never writes
 `DONE`; Planner writes it only when the matching review has no `blocker`.
 Each `RUN` records changed files, change summary, validation, and unresolved
-risks. PM chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log
+risks. Leader chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log
 events for one Standard work; `<SLUG>` identifies run artifacts. Use one `task-id`
 and one `<SLUG>` together for the same Standard work. Use the matching template in
 `.agent-relay/templates/` for every round artifact.
@@ -85,37 +85,37 @@ and one `<SLUG>` together for the same Standard work. Use the matching template 
 Artifact creation and `relay.log` event append are separate required actions. A
 stage is complete only after both its artifact is written and its matching event
 is appended. The artifact author appends the matching event: Planner appends
-`PLAN` and `REVIEW`, Executor appends `RUN_ED`, and PM appends `REQUEST`,
-`RUN_ST`, `RUN_DONE`, and the final `DONE` after user approval. PM verifies the
+`PLAN` and `REVIEW`, Runner appends `RUN_ED`, and Leader appends `REQUEST`,
+`RUN_ST`, `RUN_DONE`, and the final `DONE` after user approval. Leader verifies the
 previous event exists before delegating the next stage.
 
 ## Standard Pipeline
 
-1. PM classifies the request.
+1. Leader classifies the request.
 2. Planner writes `PLAN`.
-3. PM appends `RUN_ST` and delegates to Executor.
-4. Executor implements, validates, writes `RUN-01`, and appends `RUN_ED`.
+3. Leader appends `RUN_ST` and delegates to Runner.
+4. Runner implements, validates, writes `RUN-01`, and appends `RUN_ED`.
 5. Planner reviews and writes `REVIEW-01`.
 6. If there is no `blocker`, Planner writes `DONE`.
-7. PM reports result, nits, risks, and `DONE` path to the user.
-8. After explicit user approval, PM appends the `DONE` event.
-9. After `DONE` approval, PM may propose `.agent-relay/GUIDANCE.md` updates or
+7. Leader reports result, nits, risks, and `DONE` path to the user.
+8. After explicit user approval, Leader appends the `DONE` event.
+9. After `DONE` approval, Leader may propose `.agent-relay/GUIDANCE.md` updates or
    `.agent-relay/lesson-learned/` additions. Add only items the user accepts.
-10. If there is a `blocker`, PM appends `RUN_ST` again and repeat `RUN-<NN>` and
+10. If there is a `blocker`, Leader appends `RUN_ST` again and repeat `RUN-<NN>` and
     matching `REVIEW-<NN>` without user approval until `REVIEW-03`.
-11. If blockers remain after `REVIEW-03`, PM asks the user to choose retry,
+11. If blockers remain after `REVIEW-03`, Leader asks the user to choose retry,
     plan revision, limited acceptance, or stop.
 
 For Standard work, user involvement is required only for final `DONE` approval,
-remaining blockers after `REVIEW-03`, or when PM determines a user decision is
-needed. PM continues intermediate `RUN`/`REVIEW` rounds without user approval.
+remaining blockers after `REVIEW-03`, or when Leader determines a user decision is
+needed. Leader continues intermediate `RUN`/`REVIEW` rounds without user approval.
 
 `Trivial` work closes with `RUN_DONE` without completion approval. If it reveals
 durable guidance or reusable lessons, still add only user-accepted updates.
 
 ## Context Refresh
 
-PM asks the user whether to replace a Planner or Executor instance if:
+Leader asks the user whether to replace a Planner or Runner instance if:
 
 - five or more follow-up messages have accumulated in one instance;
 - the task topic clearly changes;
@@ -123,16 +123,16 @@ PM asks the user whether to replace a Planner or Executor instance if:
 
 ## Prompt And Report Contract
 
-Planner and Executor prompts must include:
+Planner and Runner prompts must include:
 
 - goal, scope, success criteria, validation, and exact artifact path;
 - input artifact paths;
 - prohibition on out-of-scope work;
-- instruction to return ambiguity to the PM instead of guessing.
+- instruction to return ambiguity to the Leader instead of guessing.
 
 Reports should include artifact path, outcome, validation status, blockers or
-risks, nits when applicable, and any user decision required. Executor reports
-must also list items returned to PM as out-of-scope. PM keeps only artifact
+risks, nits when applicable, and any user decision required. Runner reports
+must also list items returned to Leader as out-of-scope. Leader keeps only artifact
 paths and minimum decision data unless ambiguity requires more.
 
 ## Guidance, Lessons, And Security
@@ -152,6 +152,6 @@ paths and minimum decision data unless ambiguity requires more.
 Commit `.agent-relay/` to Git. Do not add it to `.gitignore`. When updating,
 preserve `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`, `relay.log`,
 `runs/`, and non-Agent-Relay instructions in tool instruction files. After a
-successful update, PM appends `REQUEST -> RUN_DONE` to `relay.log` with the
+successful update, Leader appends `REQUEST -> RUN_DONE` to `relay.log` with the
 before/after `VERSION` in `summary`. Bootstrap and update are recording targets,
 not excluded meta work.

@@ -77,8 +77,8 @@
 예시:
 
 ```text
-2026-04-28T19:45:00 | abcd | REQUEST  | PM       | Bootstrap Agent Relay
-2026-04-28T19:46:00 | abcd | RUN_DONE | PM       | Agent Relay initialized
+2026-04-28T19:45:00 | abcd | REQUEST  | Leader  | Bootstrap Agent Relay
+2026-04-28T19:46:00 | abcd | RUN_DONE | Leader  | Agent Relay initialized
 ```
 
 ### 6. `GUIDANCE.md`와 `LESSON-LEARNED.md` 안내
@@ -174,13 +174,13 @@ Agent Relay 부트스트랩 완료.
 
 ### 5. `relay.log` 기록
 
-업데이트 완료 후 PM은 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
+업데이트 완료 후 Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
 
 예시:
 
 ```text
-2026-05-26T00:10:00 | kfnp | REQUEST  | PM       | Update Agent Relay 0.33 -> 0.34
-2026-05-26T00:12:00 | kfnp | RUN_DONE | PM       | Agent Relay updated to 0.34
+2026-05-26T00:10:00 | kfnp | REQUEST  | Leader  | Update Agent Relay 0.33 -> 0.34
+2026-05-26T00:12:00 | kfnp | RUN_DONE | Leader  | Agent Relay updated to 0.34
 ```
 
 ### 6. 완료 보고

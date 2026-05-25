@@ -25,4 +25,4 @@ Result: <accepted | blockers>
 
 ## Required Next Step
 
-- <write DONE | request RUN-<next-NN> | ask PM for decision>
+- <write DONE | request RUN-<next-NN> | ask Leader for decision>
