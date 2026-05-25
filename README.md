@@ -1,6 +1,6 @@
 # Agent Relay
 
-> **🤖 AI 에이전트에게**: 당신이 AI 에이전트이고 사용자로부터 이 저장소를 본인 프로젝트에 반영해달라는 요청을 받았다면, [`BOOTSTRAP.md`](BOOTSTRAP.md)를 그대로 따라 부트스트랩을 수행하세요. 기존 `AGENTS.md`는 덮어쓰지 말고 짧은 Agent Relay 섹션만 추가하세요. 전체 `bootstrap/AGENTS.md`는 대상 프로젝트에 `AGENTS.md`가 없을 때만 복사합니다. 이미 `.agent-relay/`가 있으면 새 설치가 아니라 업데이트 요청인지 확인하고, 업데이트 요청이면 `.agent-relay/VERSION`을 읽은 뒤 기본 upstream `https://github.com/grollcake/agent-relay`와 비교하세요. `bootstrap/` 트리는 목적지 경로를 그대로 미러링한 복사 원본입니다.
+> **🤖 AI 에이전트에게**: 당신이 AI 에이전트이고 사용자로부터 이 저장소를 본인 프로젝트에 반영해달라는 요청을 받았다면, [`BOOTSTRAP.md`](BOOTSTRAP.md)를 그대로 따라 부트스트랩을 수행하세요. 기존 `AGENTS.md`는 덮어쓰지 말고 `<agent-relay-rules>...</agent-relay-rules>` 블록만 추가하세요. 전체 `bootstrap/AGENTS.md`는 대상 프로젝트에 `AGENTS.md`가 없을 때만 복사합니다. 이미 `.agent-relay/`가 있으면 새 설치가 아니라 업데이트 요청인지 확인하고, 업데이트 요청이면 `.agent-relay/VERSION`을 읽은 뒤 기본 upstream `https://github.com/grollcake/agent-relay`와 비교하세요. `bootstrap/` 트리는 목적지 경로를 그대로 미러링한 복사 원본입니다.
 
 Agent Relay는 **Leader / Planner / Runner 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다.
 
@@ -38,7 +38,7 @@ github.com/grollcake/agent-relay 를 내 프로젝트에 반영해줘
 agent-relay 최신화해줘
 ```
 
-에이전트는 대상 프로젝트의 `.agent-relay/VERSION`을 읽고 기본 upstream `https://github.com/grollcake/agent-relay`와 비교합니다. `AGENTS.md`는 프로젝트 고유 지침을 보존하고 Agent Relay 섹션만 최신 `bootstrap/AGENTS.md`와 비교해 갱신합니다. `LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없을 때만 갱신하고, `GUIDANCE.md`, `lesson-learned/`, `relay.log`, `runs/`는 프로젝트별 상태이므로 덮어쓰지 않습니다. 업데이트 완료 후 Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
+에이전트는 대상 프로젝트의 `.agent-relay/VERSION`을 읽고 기본 upstream `https://github.com/grollcake/agent-relay`와 비교합니다. `AGENTS.md`는 프로젝트 고유 지침을 보존하고 `<agent-relay-rules>...</agent-relay-rules>` 블록만 최신 `bootstrap/AGENTS.md`와 비교해 갱신합니다. `LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없을 때만 갱신하고, `GUIDANCE.md`, `lesson-learned/`, `relay.log`, `runs/`는 프로젝트별 상태이므로 덮어쓰지 않습니다. 업데이트 완료 후 Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
 
 ---
 
@@ -48,13 +48,8 @@ agent-relay 최신화해줘
 
 ```text
 bootstrap/
-├── AGENTS.md                          # 프로젝트 루트로 복사 (필수)
-├── CLAUDE.md                          # Claude Code에서 실행 중이면 생성, 이미 있으면 머지 (선택)
-├── .codex/
-│   └── instructions.md                # 이미 있으면 머지 (선택)
-├── .cursor/
-│   └── rules/
-│       └── agent-relay.mdc            # .cursor/ 디렉토리가 있으면 신규 (선택)
+├── AGENTS.md                          # 프로젝트 루트로 복사 (기본 공통 지시문)
+├── CLAUDE.md                          # Claude Code용 동일 Agent Relay 블록 (선택)
 └── .agent-relay/                      # 프로젝트 루트로 복사 (필수)
     ├── PROTOCOL.md                    # Agent Relay 규칙(필수)
     ├── VERSION                        # 설치 버전
@@ -74,7 +69,7 @@ bootstrap/
         └── done.md
 ```
 
-`bootstrap/` 안의 모든 경로는 **목적지 경로 그대로**입니다. 도구별 지시 파일(`CLAUDE.md`/`.codex/`)은 현재 실행 중이거나 사용 흔적이 있는 도구에만 생성 또는 머지되고, 안 쓰면 생성되지 않습니다.
+`bootstrap/` 안의 모든 경로는 **목적지 경로 그대로**입니다. `CLAUDE.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록은 `AGENTS.md`의 동명 블록과 동일하게 유지하므로 Claude 사용자는 `AGENTS.md`를 제거해도 같은 규칙을 유지할 수 있습니다. `CLAUDE.md`는 Claude Code에서 실행 중이거나 이미 존재할 때만 생성 또는 머지됩니다.
 
 ---
 
@@ -175,7 +170,7 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 5. Leader가 Runner에게 위임하고 `RUN_ST`를 기록한다.
 6. Runner는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록한다.
 7. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 쓴다.
-8. `blocker`가 없으면 Planner가 `DONE` 산출물을 쓴다. Leader는 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청한다.
+8. `blocker`가 없으면 Planner가 `DONE` 산출물을 쓴다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청한다.
 9. 사용자가 명시적으로 승인한 뒤에만 Leader가 `DONE` 이벤트를 기록하여 작업을 닫는다.
 10. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 `FEEDBACK`을 기록한다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받는다. 이후 5번(`RUN_ST`)부터 다시 진행한다.
 11. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안한다. 사용자가 수락한 항목만 기록한다.
@@ -232,6 +227,17 @@ Runner가 Leader에게 보고할 때는 다음만 간결히 포함한다.
 - 미해결 리스크
 - 범위 밖으로 넘긴 사항
 
+### 사용자에게 보여 주는 보고
+
+사용자 대상 보고는 기본적으로 짧게 작성한다. `Trivial` 작업은 결과, 핵심
+변경 범위, 검증만 1~3문장으로 알린다. 생성·보존 파일 전체 목록, 프로토콜
+진행 설명, 비어 있는 리스크/다음 단계 섹션은 사용자가 요청하거나 조치가
+필요할 때만 포함한다.
+
+`Standard` 작업의 완료 또는 승인 요청도 결과, 검증 상태, 조치가 필요한
+blocker/리스크, 승인이 필요할 때의 `DONE` 경로만 우선 보여 준다. 상세
+변경과 증거는 요청받지 않는 한 산출물에 둔다.
+
 ## GUIDANCE 사용 기준
 
 `.agent-relay/GUIDANCE.md`는 세션이 바뀌어도 계속 지켜야 하는 장기 지침과 프로젝트 제약을 단일 파일로 누적하는 문서다. `DONE` 승인 이후 Leader가 장기적으로 유지할 사용자 의견이나 제약의 반영안을 제안하고, 사용자가 수락한 경우에만 갱신한다.
@@ -282,7 +288,7 @@ Agent Relay 규칙에 따라 진행해.
 조금 더 명확하게:
 
 ```text
-AGENTS.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
+AGENTS.md 또는 CLAUDE.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
 새 세션이면 Agent Relay의 읽기 순서를 먼저 따라줘.
 ```
 

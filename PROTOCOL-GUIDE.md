@@ -135,7 +135,7 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 5. Leader가 Runner에게 위임하고 `RUN_ST`를 기록합니다.
 6. Runner는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
 7. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
-8. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
+8. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
 9. 사용자가 명시적으로 승인한 뒤에만 Leader가 `DONE` 이벤트를 기록하여 작업을 닫습니다.
 10. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 `FEEDBACK`을 기록합니다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받습니다. 이후 5번(`RUN_ST`)부터 다시 진행합니다.
 11. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
@@ -197,19 +197,25 @@ Runner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
 - 미해결 리스크
 - 범위 밖으로 넘긴 사항
 
+### 사용자에게 보여 주는 보고
+
+사용자 대상 보고는 기본적으로 짧게 작성합니다. `Trivial` 작업은 결과, 핵심
+변경 범위, 검증만 1~3문장으로 알립니다. 생성·보존 파일 전체 목록, 프로토콜
+진행 설명, 비어 있는 리스크/다음 단계 섹션은 사용자가 요청하거나 조치가
+필요할 때만 포함합니다.
+
+`Standard` 작업의 완료 또는 승인 요청도 결과, 검증 상태, 조치가 필요한
+blocker/리스크, 승인이 필요할 때의 `DONE` 경로만 우선 보여 줍니다. 상세
+변경과 증거는 요청받지 않는 한 산출물에 둡니다.
+
 ## 9. 목표 파일 구조
 
 Agent Relay를 사용자 프로젝트에 도입했을 때의 `runs/` 중심 파일 구조입니다.
 
 ```text
 project-root/
-├── AGENTS.md
-├── CLAUDE.md                  # 선택, Claude Code에서 실행 중이면 생성
-├── .codex/
-│   └── instructions.md         # 선택
-├── .cursor/
-│   └── rules/
-│       └── agent-relay.mdc     # 선택
+├── AGENTS.md                  # 기본 공통 지시문
+├── CLAUDE.md                  # 선택, 동일 Agent Relay 블록을 포함
 └── .agent-relay/
     ├── PROTOCOL.md
     ├── VERSION
@@ -233,7 +239,7 @@ project-root/
 
 | 파일 | 필수 여부 | 역할 |
 |---|---:|---|
-| `AGENTS.md` | 필수 | 모든 에이전트가 읽는 공통 작업 지침입니다. |
+| `AGENTS.md` | 기본 | 모든 에이전트가 읽는 공통 작업 지침입니다. Claude 사용자가 `CLAUDE.md`만 유지하는 경우에는 생략할 수 있습니다. |
 | `.agent-relay/PROTOCOL.md` | 필수 | Agent Relay의 최소 규칙입니다. |
 | `.agent-relay/VERSION` | 필수 | 설치 버전입니다. 업데이트 시 기본 upstream과 비교하는 기준으로 씁니다. |
 | `.agent-relay/GUIDANCE.md` | 누적 관리 | 세션을 넘어 유지할 사용자 지침, 제약, 금지사항을 담는 문서입니다. |
@@ -245,12 +251,12 @@ project-root/
 
 ## 11. 합류할 때 읽는 순서
 
-새 세션을 시작하면 AI 에이전트는 `AGENTS.md`를 우선 읽습니다. `AGENTS.md`에서 Agent Relay 안내를 확인하면 `.agent-relay/PROTOCOL.md`를 읽고, 그 규칙에 따라 프로젝트 맥락과 진행 중인 작업을 확인합니다.
+새 세션을 시작하면 AI 에이전트는 현재 사용 도구가 읽는 지시 파일(`AGENTS.md`, `CLAUDE.md`, 또는 둘 다)을 우선 읽습니다. 두 파일의 `<agent-relay-rules>...</agent-relay-rules>` 블록은 동일하게 유지되므로 하나만 남아 있어도 됩니다. 여기서 Agent Relay 안내를 확인하면 `.agent-relay/PROTOCOL.md`를 읽고, 그 규칙에 따라 프로젝트 맥락과 진행 중인 작업을 확인합니다.
 
 Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 
 ```text
-1. AGENTS.md에서 Agent Relay 안내 확인
+1. AGENTS.md 또는 CLAUDE.md에서 Agent Relay 안내 확인
 2. .agent-relay/PROTOCOL.md
 3. .agent-relay/GUIDANCE.md
 4. .agent-relay/LESSON-LEARNED.md
@@ -333,10 +339,10 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 
 1. 부트스트랩 이후 작업을 맡을 `Leader`, `Planner`, `Runner` 팀을 구성합니다.
 2. `.agent-relay/`가 이미 있으면 아무 파일도 바꾸지 않고 중단 후 보고합니다.
-3. 대상 프로젝트의 `AGENTS.md`, 도구별 지시 파일 존재 여부를 확인합니다.
+3. 대상 프로젝트의 `AGENTS.md`, `CLAUDE.md` 존재 여부를 확인합니다.
 4. `AGENTS.md`가 없으면 `bootstrap/AGENTS.md`를 복사합니다.
-5. `AGENTS.md`가 이미 있으면 기존 내용을 보존하고 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션만 병합합니다.
-6. 도구별 지시 파일을 필요에 따라 병합합니다.
+5. `AGENTS.md`가 이미 있으면 기존 내용을 보존하고 `bootstrap/AGENTS.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록만 병합합니다.
+6. Claude Code에서 실행 중이거나 `CLAUDE.md`가 이미 있으면 `CLAUDE.md`의 Agent Relay 블록을 생성 또는 병합합니다.
 7. `bootstrap/.agent-relay/`를 복사합니다. `lesson-learned/`와 `runs/`는 빈 디렉토리(`.gitkeep`)로 생성합니다.
 8. `relay.log`의 자리표시자 timestamp와 이벤트 줄을 현재 작업 정보에 맞게 바꿉니다.
 9. `.agent-relay/VERSION`에 설치 버전을 기록합니다.
@@ -350,29 +356,27 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 
 1. `.agent-relay/VERSION`을 읽어 현재 설치 버전을 확인합니다.
 2. 기본 upstream `https://github.com/grollcake/agent-relay`의 최신 `main`을 임시 위치에 가져와 현재 프로젝트와 비교합니다.
-3. `AGENTS.md`는 최신 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션과 비교해 현재 파일의 Agent Relay 섹션만 교체하거나 보강합니다.
-4. `.agent-relay/PROTOCOL.md`와 `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
-5. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
-6. `.agent-relay/LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
-7. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
-8. Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당할 때만 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`을 씁니다.
+3. `AGENTS.md`는 최신 `bootstrap/AGENTS.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체하거나 보강합니다.
+4. `CLAUDE.md`가 존재하면 최신 `bootstrap/CLAUDE.md`의 동일 블록과 비교해 Agent Relay 블록만 교체하거나 보강합니다.
+5. `.agent-relay/PROTOCOL.md`와 `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
+6. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
+7. `.agent-relay/LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
+8. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
+9. Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당할 때만 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`을 씁니다.
 
 이전 버전의 `relay.log`가 `agent=`, `task=`, `TASK_BEGIN` 같은 형식을 사용하더라도 기존 줄은 수정하지 않습니다. 새 버전 적용 후 추가하는 이벤트부터 새 형식을 사용합니다.
 
-`AGENTS.md`에 Agent Relay 지시와 프로젝트 고유 지시가 섞여 있어 자동 분리가 어렵다면 파일을 바꾸지 않고 충돌로 보고합니다.
+`AGENTS.md`의 Agent Relay 블록 안에 프로젝트 고유 지시가 섞여 있어 자동 분리가 어렵다면 파일을 바꾸지 않고 충돌로 보고합니다.
 
-## 16. 도구별 지시 파일
+## 16. `CLAUDE.md` 지시 파일
 
-도구별 파일은 선택입니다. 현재 부트스트랩을 실행 중인 에이전트 도구이거나 사용자가 해당 도구를 쓰는 흔적이 있을 때만 추가하거나 병합합니다.
+`CLAUDE.md`는 선택입니다. Claude Code에서 부트스트랩을 실행 중이거나 대상 프로젝트에 이미 `CLAUDE.md`가 있을 때만 추가하거나 병합합니다.
 
 | 조건 | 처리 |
 |---|---|
-| Claude Code에서 실행 중이거나 `CLAUDE.md`가 이미 있음 | 없으면 생성하고, 있으면 기존 내용을 보존한 채 `bootstrap/CLAUDE.md`의 Agent Relay 포인터를 병합합니다. |
-| `.codex/instructions.md`가 이미 있음 | 기존 내용을 보존하고 `bootstrap/.codex/instructions.md`의 포인터를 병합합니다. |
-| `.cursor/` 디렉토리가 있음 | `.cursor/rules/agent-relay.mdc`를 추가합니다. 같은 파일이 있으면 병합합니다. |
+| Claude Code에서 실행 중이거나 `CLAUDE.md`가 이미 있음 | 없으면 생성하고, 있으면 기존 내용을 보존한 채 `bootstrap/CLAUDE.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록을 병합합니다. 이 블록은 `bootstrap/AGENTS.md`와 동일하게 유지합니다. |
 
-해당 파일이나 디렉토리가 없으면 새로 만들지 않는 것이 기본입니다.
-예외는 `.cursor/` 디렉토리가 이미 있는 경우의 Cursor rule 파일입니다.
+`CLAUDE.md`가 없고 Claude Code에서 실행 중이지 않으면 새로 만들지 않습니다.
 
 ## 17. 보안 규칙
 
@@ -409,7 +413,7 @@ Agent Relay 규칙에 따라 진행해.
 더 명확히 지시하려면 다음처럼 말합니다.
 
 ```text
-AGENTS.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
+AGENTS.md 또는 CLAUDE.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
 새 세션이면 Agent Relay의 읽기 순서를 먼저 따라줘.
 ```
 
@@ -427,6 +431,7 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 |---|---|
 | `BOOTSTRAP.md` | 에이전트가 대상 프로젝트에 Agent Relay를 설치할 때 따르는 절차 |
 | `bootstrap/AGENTS.md` | 대상 프로젝트 루트에 둘 공통 지시문 |
+| `bootstrap/CLAUDE.md` | Claude 환경에서 단독 유지할 수 있는 동일 Agent Relay 블록 지시문 |
 | `bootstrap/.agent-relay/PROTOCOL.md` | Agent Relay 정식 최소 규칙 |
 | `bootstrap/.agent-relay/VERSION` | 설치 버전 템플릿 |
 | `bootstrap/.agent-relay/GUIDANCE.md` | 장기 지침/제약 누적 템플릿 |

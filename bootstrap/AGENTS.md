@@ -1,5 +1,7 @@
 # Agent Instructions
 
+<agent-relay-rules>
+
 ## Agent Relay
 
 This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
@@ -12,3 +14,5 @@ This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
 6. If a Planner or Runner instance has five or more follow-up messages, the task topic changes, or the instance slows down or confuses context, the Leader asks the user whether to replace that role instance.
 7. Update `.agent-relay/GUIDANCE.md` and `.agent-relay/lesson-learned/` only after user approval.
 8. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
+
+</agent-relay-rules>

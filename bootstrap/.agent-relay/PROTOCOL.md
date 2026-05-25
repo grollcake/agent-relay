@@ -15,9 +15,12 @@ Planner and Runner communicate only through the Leader.
 
 ## Read Before Work
 
-When joining or resuming, read `AGENTS.md`, this file, `GUIDANCE.md`,
+When joining or resuming, read the active instruction file (`AGENTS.md`,
+`CLAUDE.md`, or both when present), this file, `GUIDANCE.md`,
 `LESSON-LEARNED.md`, existing `lesson-learned/` records, the last 50 lines of
-`relay.log`, and latest open-round artifacts if any.
+`relay.log`, and latest open-round artifacts if any. The
+`<agent-relay-rules>...</agent-relay-rules>` block in `AGENTS.md` and
+`CLAUDE.md` must remain identical so either file can stand alone.
 
 Before starting recordable work, Leader, Planner, and Runner must reread:
 
@@ -110,7 +113,8 @@ previous event exists before delegating the next stage.
 4. Runner implements, validates, writes `RUN-01`, and appends `RUN_ED`.
 5. Planner reviews and writes `REVIEW-01`.
 6. If there is no `blocker`, Planner writes `DONE`.
-7. Leader reports result, nits, risks, and `DONE` path to the user.
+7. Leader reports result, validation, actionable nits or risks if present, and
+   the `DONE` path to the user.
 8. After explicit user approval, Leader appends the `DONE` event.
 9. If the user gives feedback or reports defects instead of approval, Leader
    appends `FEEDBACK`. For obvious defects, add to the current run; otherwise
@@ -154,6 +158,18 @@ risks, nits when applicable, and any user decision required. Runner reports
 must also list items returned to Leader as out-of-scope. Leader keeps only artifact
 paths and minimum decision data unless ambiguity requires more.
 
+## User-Facing Reports
+
+Default to short user-facing reports. For `Trivial` work, report the outcome,
+key changed scope, and validation in one to three sentences. Do not list every
+created or preserved file, narrate protocol steps, or add empty risk and next-step
+sections unless the user asks or action is required.
+
+For `Standard` work, a completion or approval report should expose only the
+outcome, validation status, actionable blockers or risks, and the `DONE` path
+when approval is needed. Detailed changes and evidence remain in artifacts unless
+the user requests them.
+
 ## Guidance, Lessons, And Security
 
 - `GUIDANCE.md`: durable instructions, constraints, preferences, conventions,
@@ -170,7 +186,7 @@ paths and minimum decision data unless ambiguity requires more.
 
 Commit `.agent-relay/` to Git. Do not add it to `.gitignore`. When updating,
 preserve `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`, `relay.log`,
-`runs/`, and non-Agent-Relay instructions in tool instruction files. After a
-successful update, Leader appends `REQUEST -> RUN_DONE` to `relay.log` with the
+`runs/`, and non-Agent-Relay instructions in `CLAUDE.md`. After a successful
+update, Leader appends `REQUEST -> RUN_DONE` to `relay.log` with the
 before/after `VERSION` in `summary`. Bootstrap and update are recording targets,
 not excluded meta work.
