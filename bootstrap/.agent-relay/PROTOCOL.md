@@ -40,9 +40,12 @@ Within one continuous session, do not reread `relay.log` before every message.
   sync. Leader records `REQUEST -> RUN_DONE`; no completion approval is required.
   Bootstrap and update are not excluded as meta work.
 - `Standard`: multi-file work, design judgment, or work needing verification.
-  Use Planner -> Runner -> Planner review, preferably in the background. Leader
-  stays responsible for user replies during delegation; do not poll or sleep to
-  wait for completion.
+  After classification, create a dedicated task branch before appending
+  `REQUEST`. Keep the full workflow, records, artifacts, and implementation on
+  that branch through approval, then commit the approved state and automatically
+  merge it into the recorded base branch. Use Planner -> Runner -> Planner
+  review, preferably in the background. Leader stays responsible for user
+  replies during delegation; do not poll or sleep to wait for completion.
 
 ## Event Timeline
 
@@ -59,6 +62,9 @@ Standard work, including any `FEEDBACK` before `DONE` approval. Use a new
 `task-id` for each new `REQUEST`. Leader direct flow is
 `REQUEST -> RUN_DONE`; Standard flow is
 `REQUEST` -> `PLAN` -> `RUN_ST` -> `RUN_ED` -> `REVIEW` -> `DONE`.
+For Standard work, the Leader switches to the dedicated task branch before
+appending `REQUEST`; no task event is written to the base branch before the
+approved task branch is merged.
 `FEEDBACK` is recorded when the user reports feedback or defects instead of
 approving `DONE`. Keep the same `task-id` and artifact key. After `FEEDBACK`,
 Leader asks whether to add to the current run or start a new run. For obvious
@@ -107,23 +113,29 @@ previous event exists before delegating the next stage.
 
 ## Standard Pipeline
 
-1. Leader classifies the request.
-2. Planner writes `PLAN`.
-3. Leader appends `RUN_ST` and delegates to Runner.
-4. Runner implements, validates, writes `RUN-01`, and appends `RUN_ED`.
-5. Planner reviews and writes `REVIEW-01`.
-6. If there is no `blocker`, Planner writes `DONE`.
-7. Leader reports result, validation, actionable nits or risks if present, and
+1. Leader classifies the request without appending a Standard task event yet.
+2. Leader records the current base branch, creates a dedicated task branch, and
+   switches to it.
+3. Leader appends `REQUEST` on the task branch.
+4. Planner writes `PLAN`.
+5. Leader appends `RUN_ST` and delegates to Runner.
+6. Runner implements, validates, writes `RUN-01`, and appends `RUN_ED`.
+7. Planner reviews and writes `REVIEW-01`.
+8. If there is no `blocker`, Planner writes `DONE`.
+9. Leader reports result, validation, actionable nits or risks if present, and
    the `DONE` path to the user.
-8. After explicit user approval, Leader appends the `DONE` event.
-9. If the user gives feedback or reports defects instead of approval, Leader
+10. After explicit user approval, Leader appends the `DONE` event on the task
+    branch, commits the approved task state, then automatically merges the task
+    branch into its recorded base branch. If committing or merging cannot be
+    completed cleanly, do not force it; report the blocker.
+11. If the user gives feedback or reports defects instead of approval, Leader
    appends `FEEDBACK`. For obvious defects, add to the current run; otherwise
    ask the user to choose current run or new run. Then resume from `RUN_ST`.
-10. After `DONE` approval, Leader may propose `.agent-relay/GUIDANCE.md` updates or
+12. After `DONE` approval, Leader may propose `.agent-relay/GUIDANCE.md` updates or
    `.agent-relay/lesson-learned/` additions. Add only items the user accepts.
-11. If there is a `blocker`, Leader appends `RUN_ST` again and repeat `RUN-<NN>` and
+13. If there is a `blocker`, Leader appends `RUN_ST` again and repeat `RUN-<NN>` and
     matching `REVIEW-<NN>` without user approval until `REVIEW-03`.
-12. If blockers remain after `REVIEW-03`, Leader asks the user to choose retry,
+14. If blockers remain after `REVIEW-03`, Leader asks the user to choose retry,
     plan revision, limited acceptance, or stop.
 
 For Standard work, user involvement is required only for final `DONE` approval,
@@ -131,7 +143,8 @@ feedback or defects before `DONE` approval (`FEEDBACK`), current-run vs new-run
 choice after `FEEDBACK`, remaining blockers after `REVIEW-03`, or when Leader
 determines a user decision is needed. Leader continues `FEEDBACK` reruns and
 intermediate `RUN`/`REVIEW` rounds without further user approval until the next
-`DONE` approval request.
+`DONE` approval request. Successful approval includes automatic merge into the
+recorded base branch; no separate merge confirmation is requested.
 
 `Trivial` work closes with `RUN_DONE` without completion approval. If it reveals
 durable guidance or reusable lessons, still add only user-accepted updates.

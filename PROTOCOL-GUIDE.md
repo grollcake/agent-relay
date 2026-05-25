@@ -29,11 +29,11 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 | --- | --- | --- |
 | 기록 제외 | 단순 질문 답변, 짧은 설명, 브레인스토밍 | 응답만 하고 이벤트를 남기지 않음 |
 | `Trivial` | 사소한 텍스트/설정 변경, 명백한 국소 편집, Agent Relay 부트스트랩·업데이트 | Leader가 직접 처리하고 `REQUEST → RUN_DONE` 기록 |
-| `Standard` | 다중 파일 구현, 설계 판단, 구현 검증이 필요한 작업 | Planner → Runner → Planner 검토 |
+| `Standard` | 다중 파일 구현, 설계 판단, 구현 검증이 필요한 작업 | 작업 브랜치 생성 → Planner → Runner → Planner 검토 → 승인 후 자동 병합 |
 
 ## 4. 백그라운드 위임
 
-`Standard` 작업은 가능한 한 백그라운드로 위임합니다. Leader는 위임 후에도 사용자 응답을 계속 담당합니다. 완료를 기다리기 위한 폴링이나 sleep은 하지 않습니다. 백그라운드 실행이 어렵다면 같은 단계와 산출물 전달 방식을 순차적으로 따릅니다.
+`Standard` 작업은 분류 직후 현재 브랜치를 기준 브랜치로 기억하고 전용 작업 브랜치를 만든 뒤, 그 브랜치에서 `REQUEST`부터 기록합니다. 구현, 검토, 산출물, 로그는 사용자 승인까지 작업 브랜치에만 남기고, 승인 후 `DONE`을 기록해 승인 상태를 커밋한 다음 기준 브랜치로 자동 병합합니다. 위임은 가능한 한 백그라운드로 수행하며 Leader는 위임 후에도 사용자 응답을 계속 담당합니다.
 
 ## 5. 이벤트 타임라인
 
@@ -49,6 +49,7 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 - 이벤트는 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`만 씁니다.
 - Leader 직접 처리 흐름은 `REQUEST → RUN_DONE`입니다.
 - 표준 처리 흐름은 `REQUEST` → `PLAN` → `RUN_ST` → `RUN_ED` → `REVIEW` → `DONE`입니다.
+- `Standard`의 `REQUEST`는 작업 브랜치로 전환한 뒤 기록합니다. 승인 전에는 기준 브랜치에 해당 작업의 이벤트나 변경을 기록하지 않습니다.
 - `FEEDBACK`은 사용자가 `DONE` 승인 전 피드백·결함을 알려줄 때 Leader가 기록합니다. 같은 `task-id`와 산출물 파일 키를 유지합니다.
 - `FEEDBACK` 후 Leader는 **현재 런에 추가**할지 **새로운 런**으로 돌릴지 사용자에게 묻습니다. 명백한 결함이면 사용자 확인 없이 현재 런에 추가합니다.
 - **현재 런에 추가**: 마지막 `RUN-<NN>` 범위와 기존 `PLAN` 안에서 `RUN_ST` → `RUN_ED` → `REVIEW-<NN>`을 다시 진행합니다. `DONE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용합니다.
@@ -131,18 +132,19 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 1. Leader가 요청을 분류합니다.
 2. 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
 3. `Trivial`이면 Leader가 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫습니다.
-4. `Standard`이면 Planner가 `PLAN`을 작성합니다.
-5. Leader가 Runner에게 위임하고 `RUN_ST`를 기록합니다.
-6. Runner는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
-7. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
-8. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
-9. 사용자가 명시적으로 승인한 뒤에만 Leader가 `DONE` 이벤트를 기록하여 작업을 닫습니다.
-10. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 `FEEDBACK`을 기록합니다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받습니다. 이후 5번(`RUN_ST`)부터 다시 진행합니다.
-11. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
-12. `blocker`가 있으면 Leader가 `RUN_ST`로 다음 라운드를 위임하고, Runner가 `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 씁니다. `REVIEW-03` 전까지 사용자 승인 없이 진행합니다.
-13. `REVIEW-03`까지도 `blocker`가 남으면 Leader는 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청합니다.
+4. `Standard`이면 Leader가 기준 브랜치를 기억하고 전용 작업 브랜치를 생성·전환한 뒤 `REQUEST`를 기록합니다.
+5. Planner가 `PLAN`을 작성합니다.
+6. Leader가 Runner에게 위임하고 `RUN_ST`를 기록합니다.
+7. Runner는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
+8. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
+9. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
+10. 사용자가 명시적으로 승인한 뒤에만 Leader가 작업 브랜치에 `DONE` 이벤트를 기록하고 승인된 상태를 커밋한 다음 기준 브랜치로 자동 병합합니다. 커밋 또는 병합에 문제가 있으면 강제하지 않고 blocker로 보고합니다.
+11. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 작업 브랜치에 `FEEDBACK`을 기록합니다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받습니다. 이후 6번(`RUN_ST`)부터 다시 진행합니다.
+12. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
+13. `blocker`가 있으면 Leader가 `RUN_ST`로 다음 라운드를 위임하고, Runner가 `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 씁니다. `REVIEW-03` 전까지 사용자 승인 없이 진행합니다.
+14. `REVIEW-03`까지도 `blocker`가 남으면 Leader는 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청합니다.
 
-Standard 작업에서 사용자 개입이 필요한 경우는 `DONE` 최종 승인, `DONE` 승인 전 피드백·결함(`FEEDBACK`)과 `FEEDBACK` 후 현재 런·새 런 선택, `REVIEW-03` 이후에도 `blocker`가 남는 경우, Leader가 사용자 결정이 필요하다고 판단한 경우뿐입니다. `FEEDBACK` 이후 `RUN`/`REVIEW` 재진행과 중간 라운드 반복은 Leader가 진행합니다.
+Standard 작업에서 사용자 개입이 필요한 경우는 `DONE` 최종 승인, `DONE` 승인 전 피드백·결함(`FEEDBACK`)과 `FEEDBACK` 후 현재 런·새 런 선택, `REVIEW-03` 이후에도 `blocker`가 남는 경우, Leader가 사용자 결정이 필요하다고 판단한 경우뿐입니다. 승인이 끝나면 병합은 자동으로 진행하며 별도 확인을 받지 않습니다.
 
 `Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있습니다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 Leader는 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가합니다.
 
@@ -362,7 +364,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 6. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
 7. `.agent-relay/LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
 8. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
-9. Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당할 때만 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`을 씁니다.
+9. Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당하면 전용 작업 브랜치에서 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`을 기록하고, 승인 후 자동 병합합니다.
 
 이전 버전의 `relay.log`가 `agent=`, `task=`, `TASK_BEGIN` 같은 형식을 사용하더라도 기존 줄은 수정하지 않습니다. 새 버전 적용 후 추가하는 이벤트부터 새 형식을 사용합니다.
 
@@ -453,10 +455,10 @@ Agent Relay는 Leader / Planner / Runner 에이전트 팀이 역할을 나누고
 
 ```text
 1) 이 요청은 기록 제외인가, Trivial인가, Standard인가?
-2) Standard라면 PLAN → RUN_ST → RUN_ED → REVIEW → DONE 라운드를 지키고 있는가?
+2) Standard라면 작업 브랜치에서 REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE 흐름을 지키고 있는가?
 3) 다음 역할 또는 후속 세션이 이벤트 타임라인과 산출물로 이어받을 수 있는가?
 ```
 
 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
 `Trivial`이면 Leader가 직접 처리하고 `REQUEST → RUN_DONE` 흐름이면 충분합니다.
-`Standard`이면 PLAN → RUN_ST → RUN_ED → REVIEW를 거치고, `blocker`가 없으면 Planner가 `DONE` 산출물을 작성합니다. Leader는 사용자가 명시적으로 승인한 경우에만 `DONE` 이벤트를 기록하여 작업을 닫습니다.
+`Standard`이면 작업 브랜치에서 `REQUEST`부터 기록하고 PLAN → RUN_ST → RUN_ED → REVIEW를 거쳐, `blocker`가 없으면 Planner가 `DONE` 산출물을 작성합니다. Leader는 사용자가 명시적으로 승인한 경우에만 `DONE` 이벤트를 기록하고 승인 상태를 커밋한 뒤 기준 브랜치로 자동 병합합니다.
