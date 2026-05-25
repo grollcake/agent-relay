@@ -159,7 +159,7 @@ Agent Relay를 사용자 프로젝트에 도입했을 때의 `runs/` 중심 파�
 ```text
 project-root/
 ├── AGENTS.md
-├── CLAUDE.md                  # 선택
+├── CLAUDE.md                  # 선택, Claude Code에서 실행 중이면 생성
 ├── .codex/
 │   └── instructions.md         # 선택
 ├── .cursor/
@@ -317,11 +317,11 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 
 ## 16. 도구별 지시 파일
 
-도구별 파일은 선택입니다. 사용자가 해당 도구를 쓰는 흔적이 있을 때만 추가하거나 병합합니다.
+도구별 파일은 선택입니다. 현재 부트스트랩을 실행 중인 에이전트 도구이거나 사용자가 해당 도구를 쓰는 흔적이 있을 때만 추가하거나 병합합니다.
 
 | 조건 | 처리 |
 |---|---|
-| `CLAUDE.md`가 이미 있음 | 기존 내용을 보존하고 `bootstrap/CLAUDE.md`의 Agent Relay 포인터를 병합합니다. |
+| Claude Code에서 실행 중이거나 `CLAUDE.md`가 이미 있음 | 없으면 생성하고, 있으면 기존 내용을 보존한 채 `bootstrap/CLAUDE.md`의 Agent Relay 포인터를 병합합니다. |
 | `.codex/instructions.md`가 이미 있음 | 기존 내용을 보존하고 `bootstrap/.codex/instructions.md`의 포인터를 병합합니다. |
 | `.cursor/` 디렉토리가 있음 | `.cursor/rules/agent-relay.mdc`를 추가합니다. 같은 파일이 있으면 병합합니다. |
 

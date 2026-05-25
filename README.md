@@ -49,7 +49,7 @@ agent-relay 최신화해줘
 ```text
 bootstrap/
 ├── AGENTS.md                          # 프로젝트 루트로 복사 (필수)
-├── CLAUDE.md                          # CLAUDE.md가 이미 있으면 머지 (선택)
+├── CLAUDE.md                          # Claude Code에서 실행 중이면 생성, 이미 있으면 머지 (선택)
 ├── .codex/
 │   └── instructions.md                # 이미 있으면 머지 (선택)
 ├── .cursor/
@@ -74,7 +74,7 @@ bootstrap/
         └── done.md
 ```
 
-`bootstrap/` 안의 모든 경로는 **목적지 경로 그대로**입니다. 도구별 지시 파일(`CLAUDE.md`/`.codex/`)은 사용자가 그 도구를 쓰는 경우에만 머지되고, 안 쓰면 생성되지 않습니다.
+`bootstrap/` 안의 모든 경로는 **목적지 경로 그대로**입니다. 도구별 지시 파일(`CLAUDE.md`/`.codex/`)은 현재 실행 중이거나 사용 흔적이 있는 도구에만 생성 또는 머지되고, 안 쓰면 생성되지 않습니다.
 
 ---
 

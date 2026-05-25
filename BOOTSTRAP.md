@@ -14,7 +14,7 @@
 - `<project>/AGENTS.md` 존재 여부
 - `<project>/.agent-relay/` 디렉토리 존재 여부
 - `<project>/.agent-relay/VERSION` 존재 여부 (이미 설치된 경우 업데이트 기준)
-- `<project>/CLAUDE.md`, `<project>/.codex/instructions.md` 존재 여부 (있으면 머지 대상)
+- `<project>/CLAUDE.md`, `<project>/.codex/instructions.md` 존재 여부와 현재 실행 중인 에이전트 도구
 - `<project>/.cursor/` 디렉토리 존재 여부 (있으면 룰 파일 신규 추가 대상)
 - `<project>/README.md` 존재 여부 (없어도 진행 가능)
 
@@ -46,11 +46,11 @@
 
 ### 3. 도구별 지시 파일 처리 (선택)
 
-대상 프로젝트가 사용하는 AI 도구에 따라 다음 파일을 처리합니다. 기본 원칙은 **있으면 머지/추가, 없으면 생성하지 않음**입니다 (`.cursor/`만 예외).
+대상 프로젝트가 사용하는 AI 도구에 따라 다음 파일을 처리합니다. 현재 부트스트랩을 실행 중인 에이전트 도구는 사용 중인 도구로 간주합니다. 기본 원칙은 **해당 도구를 사용 중이면 생성 또는 머지, 사용 흔적이 없으면 생성하지 않음**입니다 (`.cursor/`만 예외).
 
 | 트리거 | 동작 | 원본 |
 |---|---|---|
-| `<project>/CLAUDE.md` 존재 | 기존 내용 보존 + Agent Relay 포인터 머지 | `bootstrap/CLAUDE.md` |
+| Claude Code에서 실행 중이거나 `<project>/CLAUDE.md` 존재 | 없으면 생성, 있으면 기존 내용 보존 + Agent Relay 포인터 머지 | `bootstrap/CLAUDE.md` |
 | `<project>/.codex/instructions.md` 존재 | 기존 내용 보존 + Agent Relay 포인터 머지 | `bootstrap/.codex/instructions.md` |
 | `<project>/.cursor/` 디렉토리 존재 | `.cursor/rules/agent-relay.mdc` 신규 추가 (충돌 없음) | `bootstrap/.cursor/rules/agent-relay.mdc` |
 
@@ -58,7 +58,7 @@
 
 - 기존 내용을 보존하고 Agent Relay 포인터(보통 5~10줄)만 추가합니다.
 - 동일한 포인터가 이미 있으면 중복 추가하지 않습니다.
-- 해당 파일/디렉토리가 없으면 그 도구를 사용자가 안 쓴다는 뜻이므로 새로 생성하지 않습니다.
+- 해당 파일/디렉토리가 없고 현재 실행 중인 도구도 아니면 그 도구를 사용자가 안 쓴다는 뜻이므로 새로 생성하지 않습니다.
 - `.cursor/rules/agent-relay.mdc`는 동일 이름의 파일이 이미 있을 때만 머지하고, 그 외에는 새로 추가합니다.
 
 ### 4. `.agent-relay/` 디렉토리 복사
@@ -91,9 +91,9 @@
 
 `<project>`가 Git 저장소라면 `.agent-relay/`는 커밋 대상입니다. 이미 `.gitignore`에 `.agent-relay/`가 있다면 제거해야 합니다.
 
-### 8. 설치 후 프로토콜 확인
+### 8. 완료 전 프로토콜 확인
 
-부트스트랩을 마친 에이전트는 대상 프로젝트의 `<project>/.agent-relay/PROTOCOL.md`를 읽고, 이후 작업부터 그 프로토콜을 따릅니다.
+부트스트랩 완료를 보고하기 전에 에이전트는 반드시 대상 프로젝트의 `<project>/.agent-relay/PROTOCOL.md`를 읽어야 합니다. 이 확인을 마치기 전에는 부트스트랩 완료를 보고하지 않습니다.
 
 ---
 
@@ -108,7 +108,7 @@ Agent Relay 부트스트랩 완료.
 
 생성/변경한 파일:
 - AGENTS.md (신규 / 머지)
-- (선택) CLAUDE.md / .codex/instructions.md 머지
+- (선택) CLAUDE.md / .codex/instructions.md 생성 또는 머지
 - (선택) .cursor/rules/agent-relay.mdc 신규 추가
 - .agent-relay/
 - .agent-relay/PROTOCOL.md
@@ -121,9 +121,12 @@ Agent Relay 부트스트랩 완료.
 - .agent-relay/templates/
 - (필요 시) .gitignore에서 .agent-relay/ 무시 규칙 제거
 
-다음 단계:
-- .agent-relay/PROTOCOL.md를 읽고 이후 작업부터 그 분류와 이벤트 흐름에 따라 기록
+확인 완료:
+- .agent-relay/PROTOCOL.md 읽음
 - .agent-relay/가 Git 추적 대상인지 확인
+
+다음 단계:
+- 이후 작업부터 .agent-relay/PROTOCOL.md의 분류와 이벤트 흐름에 따라 기록
 ```
 
 ---
