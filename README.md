@@ -122,10 +122,14 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 
 - `timestamp`는 KST 기준 `YYYY-MM-DDTHH:MM:SS` 형식으로 기록한다.
 - `task-id`는 무작위 소문자 영문 4글자를 쓴다.
-- Leader는 `REQUEST` 기록 시 `task-id` 하나를 정하고, 같은 Standard 작업의 `PLAN`/`RUN_ST`/`RUN_ED`/`REVIEW`/`DONE`까지 재사용한다. 새 `REQUEST`마다 새 `task-id`를 쓴다.
-- 이벤트는 `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`만 쓴다.
+- Leader는 `REQUEST` 기록 시 `task-id` 하나를 정하고, 같은 Standard 작업의 `PLAN`/`RUN_ST`/`RUN_ED`/`REVIEW`/`FEEDBACK`/`DONE`까지 재사용한다. 새 `REQUEST`마다 새 `task-id`를 쓴다.
+- 이벤트는 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`만 쓴다.
 - Leader 직접 처리 흐름은 `REQUEST → RUN_DONE`이다.
-- 표준 처리 흐름은 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`이다.
+- 표준 처리 흐름은 `REQUEST` → `PLAN` → `RUN_ST` → `RUN_ED` → `REVIEW` → `DONE`이다.
+- `FEEDBACK`은 사용자가 `DONE` 승인 전 피드백·결함을 알려줄 때 Leader가 기록한다. 같은 `task-id`와 산출물 파일 키를 유지한다.
+- `FEEDBACK` 후 Leader는 **현재 런에 추가**할지 **새로운 런**으로 돌릴지 사용자에게 묻는다. 명백한 결함이면 사용자 확인 없이 현재 런에 추가한다.
+- **현재 런에 추가**: 마지막 `RUN-<NN>` 범위와 기존 `PLAN` 안에서 `RUN_ST` → `RUN_ED` → `REVIEW-<NN>`을 다시 진행한다. `DONE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용한다.
+- **새로운 런**: 다음 `RUN-<NN+1>`로 `RUN_ST` → `RUN_ED` → `REVIEW-<NN+1>`을 진행한다.
 - `role` 주변 공백은 정렬용이며 의미가 없다.
 - `event`와 `role`은 각각 8자 폭으로 왼쪽 정렬하고 부족한 자리는 공백으로 채운다.
 - `RUN_ST`는 Leader가 Runner 위임 시 기록한다. `path` 없음. `summary`에 `RUN-<NN>` 번호를 포함한다.
@@ -136,26 +140,28 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 
 ## 산출물
 
-모든 라운드 산출물은 `.agent-relay/runs/`에 작성하며, 작업당 하나의 안정된 `<date>-<slug>` 키를 쓴다. **이전 라운드를 덮어쓰지 않는다.**
+모든 라운드 산출물은 `.agent-relay/runs/`에 작성하며, 작업당 하나의 안정된 `<YYYYMMDD>-<HHMM>-<slug>` 키를 쓴다. **이전 라운드를 덮어쓰지 않는다.**
 
 | 산출물 | 경로 | 작성자 | 의미 |
 | --- | --- | --- | --- |
-| Plan | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-PLAN.md` | Planner | 계획과 성공 기준 |
-| Submission | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-RUN-<NN>.md` | Runner | 라운드 `<NN>`의 변경/검증/리스크 |
-| Review | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-REVIEW-<NN>.md` | Planner | 같은 라운드 발견 |
-| Acceptance | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-DONE.md` | Planner | `blocker` 없이 검토를 통과한 수락 결과 |
+| Plan | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-PLAN.md` | Planner | 계획과 성공 기준 |
+| Submission | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-RUN-<NN>.md` | Runner | 라운드 `<NN>`의 변경/검증/리스크 |
+| Review | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-REVIEW-<NN>.md` | Planner | 같은 라운드 발견 |
+| Acceptance | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-DONE.md` | Planner | `blocker` 없이 검토를 통과한 수락 결과 |
 
 - `<NN>`은 `01`부터 시작한다.
+- 이전 라운드를 덮어쓰지 않는다. 예외: `FEEDBACK` 후 현재 런에 추가할 때, `DONE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용한다.
 - `<SLUG>`는 Leader가 정한 소문자 kebab-case 작업 키를 쓴다.
-- `task-id`는 `relay.log` 이벤트 식별자이고, `<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키다. 같은 Standard 작업에서는 `task-id` 하나와 `<SLUG>` 하나를 함께 쓴다.
-- 같은 작업의 모든 라운드 산출물은 같은 `<YYYYMMDD>-<SLUG>` 키를 쓴다.
+- `<YYYYMMDD>`와 `<HHMM>`은 Leader가 `REQUEST`를 기록할 때의 KST 날짜·시분(24시간, 구분자 없음)을 쓴다. 예: `20260526-1430-diary-write`.
+- `task-id`는 `relay.log` 이벤트 식별자이고, `<YYYYMMDD>-<HHMM>-<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키다. 같은 Standard 작업에서는 `task-id` 하나와 파일 키 하나를 함께 쓴다.
+- 같은 작업의 모든 라운드 산출물은 같은 `<YYYYMMDD>-<HHMM>-<SLUG>` 키를 쓴다.
 - 산출물은 `.agent-relay/templates/plan.md`, `run.md`, `review.md`, `done.md` 형식을 따른다.
 - Runner는 절대 `DONE`을 쓰지 않는다.
 - Planner는 검토에 `blocker`가 없을 때 `DONE` 산출물을 작성한다. `nit`는 `DONE`에 기록할 수 있다.
 - 사용자가 명시적으로 승인하기 전에는 Leader가 `DONE` 이벤트를 기록하여 작업을 종료할 수 없다.
 - 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록한다.
 - 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업이다. 각 단계는 산출물 작성과 해당 이벤트 추가가 모두 끝나야 완료된 것으로 본다.
-- 산출물 작성자가 해당 이벤트를 추가한다. Planner는 `PLAN`/`REVIEW`, Runner는 `RUN_ED`, Leader는 `REQUEST`/`RUN_ST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록한다.
+- 산출물 작성자가 해당 이벤트를 추가한다. Planner는 `PLAN`/`REVIEW`, Runner는 `RUN_ED`, Leader는 `REQUEST`/`FEEDBACK`/`RUN_ST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록한다.
 - Leader는 다음 단계 위임 전에 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인한다.
 
 ---
@@ -171,11 +177,12 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 7. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 쓴다.
 8. `blocker`가 없으면 Planner가 `DONE` 산출물을 쓴다. Leader는 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청한다.
 9. 사용자가 명시적으로 승인한 뒤에만 Leader가 `DONE` 이벤트를 기록하여 작업을 닫는다.
-10. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안한다. 사용자가 수락한 항목만 기록한다.
-11. `blocker`가 있으면 Leader가 `RUN_ST`로 다음 라운드를 위임하고, Runner가 `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 쓴다. `REVIEW-03` 전까지 사용자 승인 없이 진행한다.
-12. `REVIEW-03`까지도 `blocker`가 남으면 Leader는 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청한다.
+10. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 `FEEDBACK`을 기록한다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받는다. 이후 5번(`RUN_ST`)부터 다시 진행한다.
+11. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안한다. 사용자가 수락한 항목만 기록한다.
+12. `blocker`가 있으면 Leader가 `RUN_ST`로 다음 라운드를 위임하고, Runner가 `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 쓴다. `REVIEW-03` 전까지 사용자 승인 없이 진행한다.
+13. `REVIEW-03`까지도 `blocker`가 남으면 Leader는 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청한다.
 
-Standard 작업에서 사용자 개입이 필요한 경우는 `DONE` 최종 승인, `REVIEW-03` 이후에도 `blocker`가 남는 경우, Leader가 사용자 결정이 필요하다고 판단한 경우뿐이다. 중간 `RUN`/`REVIEW` 라운드 반복은 Leader가 진행한다.
+Standard 작업에서 사용자 개입이 필요한 경우는 `DONE` 최종 승인, `DONE` 승인 전 피드백·결함(`FEEDBACK`)과 `FEEDBACK` 후 현재 런·새 런 선택, `REVIEW-03` 이후에도 `blocker`가 남는 경우, Leader가 사용자 결정이 필요하다고 판단한 경우뿐이다. `FEEDBACK` 이후 `RUN`/`REVIEW` 재진행과 중간 라운드 반복은 Leader가 진행한다.
 
 `Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 Leader는 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가한다.
 

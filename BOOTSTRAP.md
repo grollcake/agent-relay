@@ -159,7 +159,7 @@ Agent Relay 부트스트랩 완료.
 | `CLAUDE.md`, `.codex/instructions.md`, `.cursor/rules/agent-relay.mdc` | 존재하는 경우 Agent Relay 지시만 비교해 보강 |
 | `.agent-relay/GUIDANCE.md` | 덮어쓰지 않음 |
 | `.agent-relay/LESSON-LEARNED.md` | 해결 지식 기록 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신 |
-| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE` 형식을 사용 |
+| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE` 형식을 사용 |
 | `.agent-relay/runs/` | 덮어쓰지 않음 |
 | `.agent-relay/lesson-learned/` | 덮어쓰지 않음 |
 
