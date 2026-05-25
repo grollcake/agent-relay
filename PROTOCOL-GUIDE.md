@@ -23,12 +23,12 @@ Planner와 Executor는 **PM을 통해서만** 통신합니다. 사용 도구의 
 
 ## 3. 작업 분류
 
-PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합니다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Trivial` 또는 `Standard`로 분류합니다.
+PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합니다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Trivial` 또는 `Standard`로 분류합니다. Agent Relay **부트스트랩**과 **업데이트**(`.agent-relay/`·Agent Relay 지시 파일 동기화)는 기록 제외가 아니며, PM이 직접 수행하면 `Trivial`로 `REQUEST → RUN_DONE`을 기록합니다.
 
 | 분류 | 일반적 범위 | 처리 방식 |
 | --- | --- | --- |
 | 기록 제외 | 단순 질문 답변, 짧은 설명, 브레인스토밍 | 응답만 하고 이벤트를 남기지 않음 |
-| `Trivial` | 사소한 텍스트/설정 변경, 명백한 국소 편집 | PM이 직접 처리하고 `REQUEST → RUN_DONE` 기록 |
+| `Trivial` | 사소한 텍스트/설정 변경, 명백한 국소 편집, Agent Relay 부트스트랩·업데이트 | PM이 직접 처리하고 `REQUEST → RUN_DONE` 기록 |
 | `Standard` | 다중 파일 구현, 설계 판단, 구현 검증이 필요한 작업 | Planner → Executor → Planner 검토 |
 
 ## 4. 백그라운드 위임
@@ -45,12 +45,15 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합�
 
 - `timestamp`는 KST 기준 `YYYY-MM-DDTHH:MM:SS` 형식으로 기록합니다.
 - `task-id`는 무작위 소문자 영문 4글자를 씁니다.
+- PM은 `REQUEST` 기록 시 `task-id` 하나를 정하고, 같은 Standard 작업의 `PLAN`/`RUN_ST`/`RUN_ED`/`REVIEW`/`DONE`까지 재사용합니다. 새 `REQUEST`마다 새 `task-id`를 씁니다.
 - 이벤트는 `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`만 씁니다.
 - PM 직접 처리 흐름은 `REQUEST → RUN_DONE`입니다.
 - 표준 처리 흐름은 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`입니다.
 - `role` 주변 공백은 정렬용이며 의미가 없습니다.
-- `RUN_ST`는 Executor가 `RUN-<NN>` 착수 시 기록합니다. `path` 없음.
+- `event`와 `role`은 각각 8자 폭으로 왼쪽 정렬하고 부족한 자리는 공백으로 채웁니다.
+- `RUN_ST`는 PM이 Executor 위임 시 기록합니다. `path` 없음. `summary`에 `RUN-<NN>` 번호를 포함합니다.
 - `RUN_ED`는 Executor가 `RUN-<NN>.md` 작성 후 기록합니다. `path` 필수.
+- 한 라운드 `<NN>`은 `RUN_ST` → `RUN_ED` 한 쌍입니다. `RUN_ST`는 `path`가 없으므로 바로 다음 `RUN_ED`와 짝입니다. `blocker`로 다음 라운드를 돌릴 때 같은 `task-id`에 `RUN_ST`/`RUN_ED`를 다시 추가합니다.
 - 긴 설명은 `relay.log`에 직접 넣지 말고 `.agent-relay/runs/`의 라운드 산출물로 분리합니다.
 
 예시:
@@ -60,10 +63,18 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합�
 2026-05-25T20:41:00 | qmxz | RUN_DONE | PM       | Fixed typo directly
 2026-05-25T20:50:00 | abcd | REQUEST  | PM       | Update protocol docs
 2026-05-25T20:55:00 | abcd | PLAN     | Planner  | Plan written | .agent-relay/runs/20260525-docs-PLAN.md
-2026-05-25T20:56:00 | abcd | RUN_ST   | Executor | RUN-01 started
+2026-05-25T20:56:00 | abcd | RUN_ST   | PM       | RUN-01 delegated
 2026-05-25T21:10:00 | abcd | RUN_ED   | Executor | Changes submitted | .agent-relay/runs/20260525-docs-RUN-01.md
 2026-05-25T21:15:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-docs-REVIEW-01.md
 2026-05-25T21:16:00 | abcd | DONE     | PM       | Completed
+```
+
+`blocker`로 RUN-02가 필요한 경우(같은 `task-id`):
+
+```text
+2026-05-25T21:20:00 | abcd | RUN_ST   | PM       | RUN-02 delegated
+2026-05-25T21:35:00 | abcd | RUN_ED   | Executor | Changes submitted | .agent-relay/runs/20260525-docs-RUN-02.md
+2026-05-25T21:40:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-docs-REVIEW-02.md
 ```
 
 ## 6. 산출물
@@ -79,7 +90,7 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합�
 
 - `<NN>`은 `01`부터 시작합니다.
 - `<SLUG>`는 PM이 정한 소문자 kebab-case 작업 키를 씁니다.
-- `task-id`는 `relay.log` 이벤트 식별자이고, `<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키입니다.
+- `task-id`는 `relay.log` 이벤트 식별자이고, `<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키입니다. 같은 Standard 작업에서는 `task-id` 하나와 `<SLUG>` 하나를 함께 씁니다.
 - 같은 작업의 모든 라운드 산출물은 같은 `<YYYYMMDD>-<SLUG>` 키를 씁니다.
 - 산출물은 `.agent-relay/templates/plan.md`, `run.md`, `review.md`, `done.md` 형식을 따릅니다.
 - Executor는 절대 `DONE`을 쓰지 않습니다.
@@ -88,7 +99,7 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합�
 - 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록합니다.
 - `relay.log`는 `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE` 이벤트를 추가-전용으로 남기고 `path`로 산출물을 가리킵니다.
 - 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업입니다. 각 단계는 산출물 작성과 해당 이벤트 추가가 모두 끝나야 완료된 것으로 봅니다.
-- 산출물 작성자가 해당 이벤트를 추가합니다. Planner는 `PLAN`/`REVIEW`, Executor는 `RUN_ST`/`RUN_ED`, PM은 `REQUEST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록합니다.
+- 산출물 작성자가 해당 이벤트를 추가합니다. Planner는 `PLAN`/`REVIEW`, Executor는 `RUN_ED`, PM은 `REQUEST`/`RUN_ST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록합니다.
 - PM은 다음 단계 위임 전에 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인합니다.
 
 ## 7. 파이프라인
@@ -97,14 +108,16 @@ PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합�
 2. 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
 3. `Trivial`이면 PM이 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫습니다.
 4. `Standard`이면 Planner가 `PLAN`을 작성합니다.
-5. PM이 Executor에게 위임합니다.
-6. Executor는 착수 시 `RUN_ST`를 기록하고, `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
+5. PM이 Executor에게 위임하고 `RUN_ST`를 기록합니다.
+6. Executor는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
 7. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
 8. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. PM은 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
 9. 사용자가 명시적으로 승인한 뒤에만 PM이 `DONE` 이벤트를 기록하여 작업을 닫습니다.
 10. `DONE` 승인을 받은 PM은 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
-11. `blocker`가 있으면 Executor가 다음 라운드에서 `RUN_ST` → `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 씁니다.
+11. `blocker`가 있으면 PM이 `RUN_ST`로 다음 라운드를 위임하고, Executor가 `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 씁니다. `REVIEW-03` 전까지 사용자 승인 없이 진행합니다.
 12. `REVIEW-03`까지도 `blocker`가 남으면 PM은 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청합니다.
+
+Standard 작업에서 사용자 개입이 필요한 경우는 `DONE` 최종 승인, `REVIEW-03` 이후에도 `blocker`가 남는 경우, PM이 사용자 결정이 필요하다고 판단한 경우뿐입니다. 중간 `RUN`/`REVIEW` 라운드 반복은 PM이 진행합니다.
 
 `Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있습니다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 PM은 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가합니다.
 
@@ -316,7 +329,8 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 4. `.agent-relay/PROTOCOL.md`와 `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
 5. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
 6. `.agent-relay/LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
-7. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신하고, 업데이트 작업을 `REQUEST → RUN_DONE` 또는 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE` 흐름으로 기록합니다.
+7. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
+8. PM은 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당할 때만 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`을 씁니다.
 
 이전 버전의 `relay.log`가 `agent=`, `task=`, `TASK_BEGIN` 같은 형식을 사용하더라도 기존 줄은 수정하지 않습니다. 새 버전 적용 후 추가하는 이벤트부터 새 형식을 사용합니다.
 

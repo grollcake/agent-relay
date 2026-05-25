@@ -33,8 +33,9 @@ Within one continuous session, do not reread `relay.log` before every message.
 ## Work Classes
 
 - Excluded from records: simple Q&A, short explanation, or brainstorming.
-- `Trivial`: minor localized edit. PM records `REQUEST -> RUN_DONE`; no
-  completion approval is required.
+- `Trivial`: minor localized edit, Agent Relay bootstrap, or Agent Relay update
+  sync. PM records `REQUEST -> RUN_DONE`; no completion approval is required.
+  Bootstrap and update are not excluded as meta work.
 - `Standard`: multi-file work, design judgment, or work needing verification.
   Use Planner -> Executor -> Planner review, preferably in the background. PM
   stays responsible for user replies during delegation; do not poll or sleep to
@@ -50,13 +51,18 @@ Within one continuous session, do not reread `relay.log` before every message.
 
 Use KST `YYYY-MM-DDTHH:MM:SS`, four random lowercase letters for `task-id`, and
 only `REQUEST`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`. PM
-direct flow is `REQUEST -> RUN_DONE`; Standard flow is
-`REQUEST -> PLAN -> RUN_ST -> RUN_ED -> REVIEW -> DONE`. Spaces around `role`
-are for alignment only. Preserve older event lines even if their format differs.
+creates one `task-id` at `REQUEST` and reuses it through `DONE` for the same
+Standard work. Use a new `task-id` for each new `REQUEST`. PM direct flow is
+`REQUEST -> RUN_DONE`; Standard flow is
+`REQUEST -> PLAN -> RUN_ST -> RUN_ED -> REVIEW -> DONE`. Pad `event` and `role`
+to fixed width of 8 characters with trailing spaces. Preserve older event lines
+even if their format differs.
 
-`RUN_ST` marks run start. Executor appends it when starting `RUN-<NN>`. No
-`path` required. `RUN_ED` marks run completion. Executor appends it with required
-`path` after writing `RUN-<NN>.md`.
+`RUN_ST` marks run start. PM appends it when delegating to Executor. No `path`
+required; include `RUN-<NN>` in `summary`. `RUN_ED` marks run completion.
+Executor appends it with required `path` after writing `RUN-<NN>.md`. Each round
+`<NN>` is one `RUN_ST` paired with the next `RUN_ED`. On `blocker`, append
+another `RUN_ST`/`RUN_ED` pair under the same `task-id`.
 
 ## Round Artifacts
 
@@ -72,33 +78,37 @@ Store all round artifacts in `.agent-relay/runs/` using one stable
 `DONE`; Planner writes it only when the matching review has no `blocker`.
 Each `RUN` records changed files, change summary, validation, and unresolved
 risks. PM chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log
-events; `<SLUG>` identifies run artifacts. Use the matching template in
+events for one Standard work; `<SLUG>` identifies run artifacts. Use one `task-id`
+and one `<SLUG>` together for the same Standard work. Use the matching template in
 `.agent-relay/templates/` for every round artifact.
 
 Artifact creation and `relay.log` event append are separate required actions. A
 stage is complete only after both its artifact is written and its matching event
 is appended. The artifact author appends the matching event: Planner appends
-`PLAN` and `REVIEW`, Executor appends `RUN_ST` and `RUN_ED`, and PM appends
-`REQUEST`, `RUN_DONE`, and the final `DONE` after user approval. PM verifies the
+`PLAN` and `REVIEW`, Executor appends `RUN_ED`, and PM appends `REQUEST`,
+`RUN_ST`, `RUN_DONE`, and the final `DONE` after user approval. PM verifies the
 previous event exists before delegating the next stage.
 
 ## Standard Pipeline
 
 1. PM classifies the request.
 2. Planner writes `PLAN`.
-3. PM delegates to Executor.
-4. Executor appends `RUN_ST`, implements, validates, writes `RUN-01`, and appends
-   `RUN_ED`.
+3. PM appends `RUN_ST` and delegates to Executor.
+4. Executor implements, validates, writes `RUN-01`, and appends `RUN_ED`.
 5. Planner reviews and writes `REVIEW-01`.
 6. If there is no `blocker`, Planner writes `DONE`.
 7. PM reports result, nits, risks, and `DONE` path to the user.
 8. After explicit user approval, PM appends the `DONE` event.
 9. After `DONE` approval, PM may propose `.agent-relay/GUIDANCE.md` updates or
    `.agent-relay/lesson-learned/` additions. Add only items the user accepts.
-10. If there is a `blocker`, Executor appends `RUN_ST` again and repeat
-    `RUN-<NN>` and matching `REVIEW-<NN>`.
+10. If there is a `blocker`, PM appends `RUN_ST` again and repeat `RUN-<NN>` and
+    matching `REVIEW-<NN>` without user approval until `REVIEW-03`.
 11. If blockers remain after `REVIEW-03`, PM asks the user to choose retry,
     plan revision, limited acceptance, or stop.
+
+For Standard work, user involvement is required only for final `DONE` approval,
+remaining blockers after `REVIEW-03`, or when PM determines a user decision is
+needed. PM continues intermediate `RUN`/`REVIEW` rounds without user approval.
 
 `Trivial` work closes with `RUN_DONE` without completion approval. If it reveals
 durable guidance or reusable lessons, still add only user-accepted updates.
@@ -141,4 +151,7 @@ paths and minimum decision data unless ambiguity requires more.
 
 Commit `.agent-relay/` to Git. Do not add it to `.gitignore`. When updating,
 preserve `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`, `relay.log`,
-`runs/`, and non-Agent-Relay instructions in tool instruction files.
+`runs/`, and non-Agent-Relay instructions in tool instruction files. After a
+successful update, PM appends `REQUEST -> RUN_DONE` to `relay.log` with the
+before/after `VERSION` in `summary`. Bootstrap and update are recording targets,
+not excluded meta work.

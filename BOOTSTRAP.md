@@ -77,8 +77,8 @@
 예시:
 
 ```text
-2026-04-28T19:45:00 | abcd | REQUEST  | PM | Bootstrap Agent Relay
-2026-04-28T19:46:00 | abcd | RUN_DONE | PM | Agent Relay initialized
+2026-04-28T19:45:00 | abcd | REQUEST  | PM       | Bootstrap Agent Relay
+2026-04-28T19:46:00 | abcd | RUN_DONE | PM       | Agent Relay initialized
 ```
 
 ### 6. `GUIDANCE.md`와 `LESSON-LEARNED.md` 안내
@@ -172,7 +172,18 @@ Agent Relay 부트스트랩 완료.
 - Agent Relay 포인터만 있고 섹션이 없으면 최신 섹션을 추가하되 중복 문장은 제거합니다.
 - Agent Relay 섹션 안에 프로젝트 고유 지시가 섞여 있어 자동 분리가 어렵다면 파일을 바꾸지 않고 충돌로 보고합니다.
 
-### 5. 완료 보고
+### 5. `relay.log` 기록
+
+업데이트 완료 후 PM은 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
+
+예시:
+
+```text
+2026-05-26T00:10:00 | kfnp | REQUEST  | PM       | Update Agent Relay 0.33 -> 0.34
+2026-05-26T00:12:00 | kfnp | RUN_DONE | PM       | Agent Relay updated to 0.34
+```
+
+### 6. 완료 보고
 
 업데이트가 끝나면 변경 파일, 보존한 파일, 충돌 또는 수동 확인이 필요한 파일, 업데이트 전후 버전을 보고합니다.
 
