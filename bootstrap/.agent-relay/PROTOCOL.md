@@ -71,6 +71,13 @@ risks. PM chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log
 events; `<SLUG>` identifies run artifacts. Use the matching template in
 `.agent-relay/templates/` for every round artifact.
 
+Artifact creation and `relay.log` event append are separate required actions. A
+stage is complete only after both its artifact is written and its matching event
+is appended. The artifact author appends the matching event: Planner appends
+`PLAN` and `REVIEW`, Executor appends `RUN`, and PM appends `REQUEST`,
+`RUN_DONE`, and the final `DONE` after user approval. PM verifies the previous
+event exists before delegating the next stage.
+
 ## Standard Pipeline
 
 1. PM classifies the request.
