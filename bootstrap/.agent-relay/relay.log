@@ -1,1 +1,2 @@
-<YYYY-MM-DDTHH:MM:SS+09:00> | SESSION_START | agent=Human | event=PROJECT_BOOTSTRAPPED | summary="Agent Relay initialized"
+<YYYY-MM-DDTHH:MM:SS> | <task-id> | REQUEST  | PM | Bootstrap Agent Relay
+<YYYY-MM-DDTHH:MM:SS> | <task-id> | RUN_DONE | PM | Agent Relay initialized

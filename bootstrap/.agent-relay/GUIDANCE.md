@@ -2,7 +2,7 @@
 
 Use this file for durable project guidance that should survive across agent sessions.
 
-Do not use this file for progress tracking, current task status, temporary plans, or next steps. Use `relay.log` and handoff files for that.
+Do not use this file for progress tracking, current task status, temporary plans, or next steps. Use `relay.log` and `.agent-relay/runs/` artifacts for that.
 
 Update this file when the user gives a durable instruction, constraint, preference, convention, security rule, or "do not" rule that future agents should keep following.
 

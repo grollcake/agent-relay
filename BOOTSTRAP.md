@@ -1,4 +1,4 @@
-# Bootstrap Guide
+# Bootstrap
 
 이 문서는 **AI 에이전트가 사용자 프로젝트에 Agent Relay를 적용할 때 따라야 하는 절차**입니다.
 사람이 직접 따라할 수도 있지만, 기본은 에이전트가 이 문서를 읽고 자동 수행합니다.
@@ -16,22 +16,11 @@
 - `<project>/.agent-relay/VERSION` 존재 여부 (이미 설치된 경우 업데이트 기준)
 - `<project>/CLAUDE.md`, `<project>/.codex/instructions.md` 존재 여부 (있으면 머지 대상)
 - `<project>/.cursor/` 디렉토리 존재 여부 (있으면 룰 파일 신규 추가 대상)
-- `<project>/README.md` 존재 여부 (없어도 진행 가능, 단계 7 참고)
+- `<project>/README.md` 존재 여부 (없어도 진행 가능)
 
 ---
 
 ## 부트스트랩 절차
-
-### 0. 세션 에이전트 이름 결정
-
-부트스트랩을 수행하는 주체 이름을 먼저 정합니다.
-
-- 형식: `<에이전트>(<LLM 또는 버전>[, <역할>])`
-- 예: `Codex(GPT-5.5)`, `Claude Code(Claude Sonnet 4.5)`, `Cursor(GPT-5.5, Reviewer)`
-- LLM 또는 버전을 모르면 괄호를 쓰지 않고 에이전트 이름만 사용합니다. 예: `Codex`, `Claude Code`, `Cursor`
-- 사람이 직접 수행하면 `Human`을 사용합니다.
-
-이 이름은 `relay.log`의 `agent=` 값에 사용합니다.
 
 ### 1. `.agent-relay/` 디렉토리 처리
 
@@ -40,7 +29,7 @@
 - **이미 있으면**: **부트스트랩을 중단**하고 사용자에게 보고합니다.
   - 이미 Agent Relay가 적용된 프로젝트일 가능성이 큽니다.
   - 사용자가 "최신화", "업데이트", "sync"를 요청한 경우에는 새 설치가 아니라 아래 "업데이트 절차"를 따릅니다.
-  - 사용자 확인 없이 기존 `AGENTS.md`, `relay.log`, `handoff/`, `INDEX.md`를 덮어쓰거나 머지하지 않습니다.
+  - 사용자 확인 없이 기존 `AGENTS.md`, `relay.log`, `runs/`, `GUIDANCE.md`, `lesson-learned/`를 덮어쓰거나 머지하지 않습니다.
   - 사용자가 명시적으로 "재초기화" 또는 "특정 파일만 갱신"을 요청한 경우에만, 해당 범위로 한정해 진행합니다.
 - **없으면**: 이후 단계로 진행합니다.
 
@@ -57,13 +46,14 @@
 
     This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
 
-    1. When joining or resuming work, follow the Agent Relay read order in `.agent-relay/PROTOCOL.md`.
-    2. Choose one session agent name and use it consistently in `relay.log`.
-    3. For meaningful work, append `TASK_BEGIN` to `.agent-relay/relay.log` before starting and `TASK_DONE` after finishing.
-    4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
-    5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
-    6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
-    7. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
+    1. When joining or resuming work, read and follow `.agent-relay/PROTOCOL.md`.
+    2. Before starting every new request, read `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`.
+    3. Use the `PM`, `Planner`, and `Executor` roles and keep Planner and Executor communication routed through the PM.
+    4. Keep `.agent-relay/relay.log` append-only and store round artifacts in `.agent-relay/runs/` without overwriting older rounds.
+    5. The PM must not append the final `DONE` event or close the task until the user explicitly approves completion.
+    6. If a Planner or Executor instance has five or more follow-up messages, the task topic changes, or the instance slows down or confuses context, the PM asks the user whether to replace that role instance.
+    7. Update `.agent-relay/GUIDANCE.md` and `.agent-relay/lesson-learned/` only after user approval.
+    8. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
     ```
   - 동일한 Agent Relay 섹션이나 포인터가 이미 있으면 중복 추가하지 않고 누락된 문장만 보강합니다.
   - 기존 프로젝트의 규칙·역할·지시문을 임의로 삭제하거나 재작성하지 않습니다.
@@ -89,66 +79,35 @@
 
 `bootstrap/.agent-relay/`를 통째로 `<project>/.agent-relay/`로 복사합니다.
 
-### 5. `relay.log` placeholder 치환
+### 5. 초기 `relay.log` 기록
 
-`<project>/.agent-relay/relay.log`의 첫 줄 placeholder timestamp를 현재 시각으로 치환합니다.
+복사된 `<project>/.agent-relay/relay.log`에는 부트스트랩 작업을 기록하기 위한 두 줄이 들어 있습니다. 이 두 줄의 placeholder를 실제 값으로 바꿉니다.
 
-- 형식: ISO-8601, 타임존 포함 (예: `2026-04-28T19:45:00+09:00`)
-- 예시 변환:
-  - 변환 전: `<YYYY-MM-DDTHH:MM:SS+09:00> | SESSION_START | agent=Human | event=PROJECT_BOOTSTRAPPED | summary="Agent Relay initialized"`
-  - 변환 후: `2026-04-28T19:45:00+09:00 | SESSION_START | agent=Codex(GPT-5.5) | event=PROJECT_BOOTSTRAPPED | summary="Agent Relay initialized"`
-- `agent=Human`은 사용자가 직접 부트스트랩한 경우에만 사용합니다.
-- 에이전트가 자동 부트스트랩한 경우 0단계에서 정한 세션 에이전트 이름을 사용합니다. 예: `agent=Codex(GPT-5.5)`.
+1. 현재 KST 시간을 `YYYY-MM-DDTHH:MM:SS` 형식으로 적습니다.
+2. 무작위 소문자 영문 4글자로 `task-id` 하나를 만듭니다.
+3. `REQUEST` 줄과 `RUN_DONE` 줄에 같은 `task-id`를 넣습니다.
+4. 두 줄의 timestamp를 실제 부트스트랩 시작/완료 시각으로 바꿉니다. 같은 시각을 써도 됩니다.
 
-### 6. `VERSION` 확인
+예시:
 
-`<project>/.agent-relay/VERSION`은 Agent Relay 설치 버전만 담습니다.
+```text
+2026-04-28T19:45:00 | abcd | REQUEST  | PM | Bootstrap Agent Relay
+2026-04-28T19:46:00 | abcd | RUN_DONE | PM | Agent Relay initialized
+```
 
-값은 이 저장소 루트 `VERSION`의 값과 같아야 합니다. 기본 upstream은 `https://github.com/grollcake/agent-relay`의 `main` 브랜치입니다.
-
-### 7. `INDEX.md` placeholder 채우기
-
-`<project>/.agent-relay/INDEX.md`의 placeholder를 현재 프로젝트 정보로 채웁니다.
-
-| Placeholder | 채우는 값 |
-|---|---|
-| `<project-name>` | `<project>` 디렉토리명 또는 프로젝트의 실제 이름 |
-| `<repo-name>` | `git config --get remote.origin.url`에서 추출하거나, 없으면 디렉토리명 |
-| `Primary Purpose` | 프로젝트의 장기 목적을 `README.md`에서 추출하거나 사용자에게 한 줄 요청 |
-
-### 8. `GUIDANCE.md` 안내
+### 6. `GUIDANCE.md`와 `LESSON-LEARNED.md` 안내
 
 `GUIDANCE.md`는 기본 템플릿으로 복사됩니다. 부트스트랩 직후 억지로 채우지 않습니다.
 
-이 파일은 진행 상태나 현재 작업을 기록하는 곳이 아닙니다. Agent Relay를 사용하는 동안 사용자가 지속적으로 주는 장기 지침, 제약, 선호, 금지사항을 누적하는 곳입니다.
+`LESSON-LEARNED.md`는 완료된 작업에서 얻은 재사용 가능한 해결 지식을 `.agent-relay/lesson-learned/`에 기록하는 기준을 설명합니다. 기록은 작업 완료 승인 이후 사용자가 수락한 항목만 추가합니다.
 
-기록 대상:
+### 7. Git 정책 확인
 
-- 오래 유지되는 프로젝트 맥락
-- 사용자 선호와 상시 지시
-- 기술·제품·운영 제약
-- 하지 말아야 할 것
-- 보안·개인정보 규칙
-- 코드/테스트/브랜치/작업 관례
+`<project>`가 Git 저장소라면 `.agent-relay/`는 커밋 대상입니다. 이미 `.gitignore`에 `.agent-relay/`가 있다면 제거해야 합니다.
 
-### 9. 보안 점검
+### 8. 설치 후 프로토콜 확인
 
-다음 정보는 `<project>/.agent-relay/` 어디에도 저장하지 않습니다.
-
-- API 키, 토큰, 비밀번호
-- 자격 증명, 사적 키
-- 고객 데이터, 개인정보
-- 민감한 내부 정보, 운영 비밀
-
-부트스트랩 직후 `relay.log`, `INDEX.md`, `GUIDANCE.md`에 위 정보가 들어가지 않았는지 한 번 점검합니다.
-
-### 10. Git 정책 확인
-
-`<project>`가 Git 저장소라면 `.agent-relay/`는 커밋 대상입니다.
-
-Agent Relay는 에이전트 간 작업 인수인계를 위한 프로젝트 자산입니다. `.agent-relay/`를 `.gitignore`에 추가하지 않습니다.
-
-이미 `.gitignore`에 `.agent-relay/`가 있다면 제거해야 합니다. 단, 보안 규칙에 따라 비밀정보는 `.agent-relay/`에 저장하지 않습니다.
+부트스트랩을 마친 에이전트는 대상 프로젝트의 `<project>/.agent-relay/PROTOCOL.md`를 읽고, 이후 작업부터 그 프로토콜을 따릅니다.
 
 ---
 
@@ -159,26 +118,26 @@ Agent Relay는 에이전트 간 작업 인수인계를 위한 프로젝트 자�
 ```text
 Agent Relay 부트스트랩 완료.
 
+적용 버전: x.x
+
 생성/변경한 파일:
 - AGENTS.md (신규 / 머지)
 - (선택) CLAUDE.md / .codex/instructions.md 머지
 - (선택) .cursor/rules/agent-relay.mdc 신규 추가
+- .agent-relay/
 - .agent-relay/PROTOCOL.md
-- .agent-relay/VERSION (설치 버전)
-- .agent-relay/INDEX.md
-- .agent-relay/relay.log (timestamp 치환됨)
-- .agent-relay/handoff/
-- .agent-relay/templates/task-begin.md
-- .agent-relay/templates/task-done.md
-- .agent-relay/templates/handoff.md
-- .agent-relay/GUIDANCE.md (장기 지침/제약 누적 템플릿)
+- .agent-relay/VERSION
+- .agent-relay/GUIDANCE.md
+- .agent-relay/LESSON-LEARNED.md
+- .agent-relay/relay.log
+- .agent-relay/lesson-learned/
+- .agent-relay/runs/
+- .agent-relay/templates/
 - (필요 시) .gitignore에서 .agent-relay/ 무시 규칙 제거
 
 다음 단계:
-- INDEX.md의 Project / Important Files 확인
-- 이후 사용자 장기 지침이 생기면 GUIDANCE.md에 누적
+- .agent-relay/PROTOCOL.md를 읽고 이후 작업부터 그 분류와 이벤트 흐름에 따라 기록
 - .agent-relay/가 Git 추적 대상인지 확인
-- 첫 의미 있는 작업부터 relay.log에 TASK_BEGIN / TASK_DONE 쌍으로 남기기
 ```
 
 ---
@@ -208,11 +167,12 @@ Agent Relay 부트스트랩 완료.
 | `.agent-relay/PROTOCOL.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/templates/` | 템플릿 파일은 최신 upstream과 비교해 갱신 |
 | `.agent-relay/VERSION` | 성공 후 최신 upstream의 `VERSION` 값으로 갱신 |
-| `CLAUDE.md`, `.codex/instructions.md`, `.cursor/rules/agent-relay.mdc` | 존재하는 경우 Agent Relay 포인터만 비교해 보강 |
-| `.agent-relay/INDEX.md` | 프로젝트별 지도이므로 덮어쓰지 않음. 새 권장 섹션이 있으면 사용자 확인 후 보강 |
+| `CLAUDE.md`, `.codex/instructions.md`, `.cursor/rules/agent-relay.mdc` | 존재하는 경우 Agent Relay 지시만 비교해 보강 |
 | `.agent-relay/GUIDANCE.md` | 덮어쓰지 않음 |
-| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 업데이트 작업을 `TASK_BEGIN` / `TASK_DONE` 쌍으로 추가 |
-| `.agent-relay/handoff/` | 덮어쓰지 않음 |
+| `.agent-relay/LESSON-LEARNED.md` | 해결 지식 기록 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신 |
+| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE` 형식을 사용 |
+| `.agent-relay/runs/` | 덮어쓰지 않음 |
+| `.agent-relay/lesson-learned/` | 덮어쓰지 않음 |
 
 ### 4. `AGENTS.md` 머지 규칙
 

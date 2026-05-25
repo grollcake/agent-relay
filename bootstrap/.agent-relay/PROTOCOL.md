@@ -1,249 +1,120 @@
 # Agent Relay Protocol
 
-Agent Relay is a vendor-neutral, file-based relay protocol for heterogeneous AI coding agents.
+Minimum rules for installed projects. Background, bootstrap, and template
+details belong in the repository README and guide.
 
-It exists to help agents continue each other's work across:
+## Roles
 
-- sessions
-- models
-- harnesses
-- machines
-- roles
+- `PM`: user communication, classification, scope, delegation, and final report.
+- `Planner`: writes `PLAN`, reviews `RUN`, and writes `DONE` when accepted.
+- `Executor`: implements `PLAN`, validates work, and writes `RUN`.
 
-Agent Relay is intentionally small.
+Planner and Executor communicate only through the PM.
 
-## Core Rules
+## Read Before Work
 
-1. When joining or resuming work, follow the Agent Relay read order.
-2. Choose one session agent name and use it consistently in `relay.log`.
-3. For meaningful work, append `TASK_BEGIN` before starting and `TASK_DONE` after finishing.
-4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
-5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
-6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
-7. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
+When joining or resuming, read `AGENTS.md`, this file, `GUIDANCE.md`,
+`LESSON-LEARNED.md`, existing `lesson-learned/` records, the last 50 lines of
+`relay.log`, and latest open-round artifacts if any.
 
-## Directory
+Before every new request, PM, Planner, and Executor must reread:
 
-Agent Relay files live under:
+1. `.agent-relay/GUIDANCE.md`
+2. `.agent-relay/LESSON-LEARNED.md`
+3. existing records under `.agent-relay/lesson-learned/`
 
-`.agent-relay/`
+No role may classify, plan, implement, or review before this check is complete.
 
-Recommended structure:
+## Work Classes
 
-```text
-.agent-relay/
-├── PROTOCOL.md
-├── VERSION
-├── INDEX.md
-├── GUIDANCE.md
-├── relay.log
-├── handoff/
-└── templates/
-```
+- Excluded from records: simple Q&A, short explanation, or brainstorming.
+- `Trivial`: minor localized edit. PM records `REQUEST -> RUN_DONE`; no
+  completion approval is required.
+- `Standard`: multi-file work, design judgment, or work needing verification.
+  Use Planner -> Executor -> Planner review, preferably in the background.
 
-## Rule 1. Read Context When Joining
+## Event Timeline
 
-Agents must read recent relay context when starting or resuming work.
-
-Read `AGENTS.md` first.
-
-Read relay context when:
-
-- starting a new session;
-- switching agents, models, or harnesses;
-- resuming after a long pause;
-- taking over from a handoff;
-- the current context is unclear.
-
-Recommended read order:
-
-1. `AGENTS.md`
-2. choose the session agent name
-3. `README.md`
-4. `.agent-relay/GUIDANCE.md`
-5. `.agent-relay/PROTOCOL.md`
-6. `.agent-relay/INDEX.md`
-7. last 50 lines of `.agent-relay/relay.log`
-8. relevant handoff files under `.agent-relay/handoff/`
-
-Do not re-read `relay.log` before every user message in the same active session.
-
-Within one continuous session, keep working from the current conversation context.
-
-## Rule 2. Choose A Session Agent Name
-
-Choose a session agent name before reading or writing relay entries, and use it consistently for the session.
-
-Use:
+`relay.log` is append-only. Keep summaries short and link artifacts with `path`.
 
 ```text
-<agent>(<llm-or-version>[, <role>])
+<YYYY-MM-DDTHH:MM:SS> | <task-id> | <event> | <role> | <summary> | <path?>
 ```
 
-Examples:
+Use KST `YYYY-MM-DDTHH:MM:SS`, four random lowercase letters for `task-id`, and
+only `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE`. Spaces around
+`role` are for alignment only. Preserve older event lines even if their format
+differs.
 
-```text
-Codex(GPT-5.5)
-Claude Code(Claude Sonnet 4.5)
-Cursor(GPT-5.5, Reviewer)
-```
+## Round Artifacts
 
-If the LLM or version is unknown, use only the agent name without parentheses, for example `Codex`, `Claude Code`, or `Cursor`.
+Store all round artifacts in `.agent-relay/runs/` using one stable
+`<YYYYMMDD>-<SLUG>` key:
 
-Use `Human` only for work performed directly by a human.
+- `.agent-relay/runs/<YYYYMMDD>-<SLUG>-PLAN.md`
+- `.agent-relay/runs/<YYYYMMDD>-<SLUG>-RUN-<NN>.md`
+- `.agent-relay/runs/<YYYYMMDD>-<SLUG>-REVIEW-<NN>.md`
+- `.agent-relay/runs/<YYYYMMDD>-<SLUG>-DONE.md`
 
-Use the session agent name in every `agent=` field.
+`<NN>` starts at `01`. Never overwrite an older round. Executor never writes
+`DONE`; Planner writes it only when the matching review has no `blocker`.
+PM chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log events;
+`<SLUG>` identifies run artifacts. Use the matching template in
+`.agent-relay/templates/` for every round artifact.
 
-## Rule 3. Record Meaningful Work With Begin And Done
+## Standard Pipeline
 
-For meaningful work, append a short `TASK_BEGIN` event to `.agent-relay/relay.log` before starting, then append `TASK_DONE` after finishing.
+1. PM classifies the request.
+2. Planner writes `PLAN`.
+3. Executor implements, validates, and writes `RUN-01`.
+4. Planner reviews and writes `REVIEW-01`.
+5. If there is no `blocker`, Planner writes `DONE`.
+6. PM reports result, nits, risks, and `DONE` path to the user.
+7. After explicit user approval, PM appends the `DONE` event.
+8. After `DONE` approval, PM may propose `.agent-relay/GUIDANCE.md` updates or
+   `.agent-relay/lesson-learned/` additions. Add only items the user accepts.
+9. If there is a `blocker`, repeat `RUN-<NN>` and matching `REVIEW-<NN>`.
+10. If blockers remain after `REVIEW-03`, PM asks the user to choose retry,
+    plan revision, limited acceptance, or stop.
 
-Meaningful work includes:
+`Trivial` work closes with `RUN_DONE` without completion approval. If it reveals
+durable guidance or reusable lessons, still add only user-accepted updates.
 
-- code changes
-- file changes
-- test execution
-- debugging attempts
-- architecture or design decisions
-- issue or task updates
-- work that another agent may need later
+## Context Refresh
 
-Do not log simple Q&A, brainstorming, or explanation-only conversations unless the user asks to preserve the context.
+PM asks the user whether to replace a Planner or Executor instance if:
 
-`relay.log` is append-only.
+- five or more follow-up messages have accumulated in one instance;
+- the task topic clearly changes;
+- responses slow down or the instance confuses earlier context.
 
-Never edit existing lines in place.
+## Prompt And Report Contract
 
-If a correction is needed, append a new `CORRECTION` event.
+Planner and Executor prompts must include:
 
-Recommended event types:
+- goal, scope, success criteria, validation, and exact artifact path;
+- input artifact paths;
+- prohibition on out-of-scope work;
+- instruction to return ambiguity to the PM instead of guessing.
 
-- `SESSION_START`
-- `TASK_BEGIN`
-- `TASK_DONE`
-- `HANDOFF`
-- `HANDOFF_RECEIVED`
-- `HANDOFF_CLOSED`
-- `CORRECTION`
+Reports should include artifact path, outcome, validation status, blockers or
+risks, nits when applicable, and any user decision required. PM keeps only
+artifact paths and minimum decision data unless ambiguity requires more.
 
-Keep entries short. Do not copy the user's full prompt into `TASK_BEGIN`; summarize the task.
+## Guidance, Lessons, And Security
 
-Use `TASK_BEGIN` before changing files, running tests, doing a non-trivial investigation, or starting any task that may need recovery if the session stops before completion.
+- `GUIDANCE.md`: durable instructions, constraints, preferences, conventions,
+  security rules, and prohibitions only.
+- `lesson-learned/`: reusable mistakes, solutions, and validation knowledge from
+  completed work only. Use `templates/lesson-learned.md` and save records as
+  `.agent-relay/lesson-learned/<YYYYMMDD>-<slug>.md`.
+- Task progress stays in `relay.log` and round artifacts.
+- Guidance and lesson updates require user acceptance.
+- Never store secrets, credentials, customer data, personal information,
+  sensitive internal information, or production secrets under `.agent-relay/`.
 
-If the task is completed immediately before a `TASK_BEGIN` can be written, append both `TASK_BEGIN` and `TASK_DONE` afterward, in that order, using the same `task=` key.
+## Git And Updates
 
-Minimal `TASK_BEGIN` format:
-
-```text
-<timestamp> | TASK_BEGIN | agent=<agent> | task=<MMDD-xxx> | summary=<task summary>
-```
-
-Minimal `TASK_DONE` format:
-
-```text
-<timestamp> | TASK_DONE  | agent=<agent> | task=<MMDD-xxx> | result=<success|partial|failed|blocked> | files=<summary> | tests=<summary>
-```
-
-Use `agent=<agent>(<llm-or-version>[, <role>])`, for example `Codex(GPT-5.5)` or `Cursor(GPT-5.5, Reviewer)`. If the LLM or version is unknown, use only the agent name, for example `Codex`. Use `agent=Human` only for work performed directly by a human.
-
-Use `task=<MMDD-xxx>` to connect `TASK_BEGIN`, `TASK_DONE`, and related `HANDOFF` events. Generate it at `TASK_BEGIN` using the local month/day plus three random lowercase letters, for example `0428-qmx`. If the same `task=` is already open in recent relay context, generate another one.
-
-`TASK_DONE` means the task attempt is closed. `result` records whether it succeeded, partially completed, failed, or is blocked.
-
-Examples:
-
-```text
-2026-04-28T16:20:00+09:00 | TASK_BEGIN | agent=Codex(GPT-5.5) | task=0428-qmx | summary="Align relay event names"
-2026-04-28T16:40:00+09:00 | TASK_DONE  | agent=Codex(GPT-5.5) | task=0428-qmx | result=success | files=src/cube/state.ts, tests/cube-state.test.ts | tests=npm test passed
-```
-
-## Rule 4. Handoff Only When Needed
-
-Create a handoff file only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
-
-Create a handoff when:
-
-- another agent or role must continue;
-- the result is `partial`, `failed`, or `blocked`;
-- tests, review, or analysis must be performed by another role;
-- important context cannot fit in a short relay log event.
-
-Do not create a handoff when:
-
-- the task is fully completed;
-- the result can be summarized in one short relay log entry;
-- there is no next owner.
-
-## Rule 5. Link Handoffs From Relay Log
-
-If the context is long, create a separate markdown file under `.agent-relay/handoff/` and reference it from `relay.log`.
-
-When creating a handoff file, append a `HANDOFF` event to `relay.log` with `path=<handoff-file>`.
-
-Example:
-
-```text
-2026-04-28T16:40:00+09:00 | HANDOFF | agent=Codex(GPT-5.5) | task=0428-qmx | result=blocked | path=.agent-relay/handoff/0428-qmx--auth-refresh.md | summary="Auth refresh behavior needs follow-up analysis"
-```
-
-Do not assume the next agent is known. Use the task key, two hyphens, and a topic:
-
-```text
-.agent-relay/handoff/<task>--<topic>.md
-```
-
-Example:
-
-```text
-.agent-relay/handoff/0428-qmx--cube-rotation.md
-```
-
-## Rule 6. Preserve Durable Guidance
-
-Update `.agent-relay/GUIDANCE.md` when the user gives a durable instruction, constraint, preference, convention, security rule, or "do not" rule that future agents should keep following.
-
-Do not update `GUIDANCE.md` for one-off task details, transient debugging notes, temporary plans, or work progress.
-
-When updating `GUIDANCE.md`, keep the entry short and stable. If the guidance came from a task conversation, also record the meaningful work result in `relay.log` when appropriate.
-
-## Rule 7. Keep Sensitive Data Out
-
-Never store the following in `.agent-relay/`:
-
-- API keys
-- tokens
-- passwords
-- private credentials
-- customer data
-- sensitive internal information
-- production secrets
-
-## Other Rules
-
-### Git Policy
-
-Commit `.agent-relay/` to Git.
-
-Agent Relay is project handoff state. The next agent should receive the same protocol, index, relay log, and handoff files from the repository.
-
-Do not add `.agent-relay/` to `.gitignore`. If an ignore rule already exists, remove it.
-
-Never store secrets or sensitive data in `.agent-relay/`.
-
-### Update Policy
-
-When the user asks to update, refresh, or sync Agent Relay, read `.agent-relay/VERSION` first.
-
-Treat that file as the installed Agent Relay version. Compare this project with the latest `main` branch of the default upstream repository: `https://github.com/grollcake/agent-relay`.
-
-Update managed protocol files from upstream only after preserving project-specific state:
-
-- preserve `.agent-relay/GUIDANCE.md`;
-- preserve `.agent-relay/relay.log`;
-- preserve `.agent-relay/handoff/`;
-- preserve project-specific content in `.agent-relay/INDEX.md`;
-- preserve non-Agent-Relay instructions in `AGENTS.md`, `CLAUDE.md`, `.codex/instructions.md`, and `.cursor/rules/agent-relay.mdc`.
-
-For `AGENTS.md`, compare the current Agent Relay section with the upstream `bootstrap/AGENTS.md` Agent Relay section. Replace or patch only the Agent Relay section. Do not delete unrelated project rules. If the section is mixed with local instructions and cannot be safely separated, stop and report the conflict.
-
-After a successful update, update `.agent-relay/VERSION` to the latest upstream `VERSION` value, then append short `TASK_BEGIN` and `TASK_DONE` entries to `relay.log`.
+Commit `.agent-relay/` to Git. Do not add it to `.gitignore`. When updating,
+preserve `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`, `relay.log`,
+`runs/`, and non-Agent-Relay instructions in tool instruction files.

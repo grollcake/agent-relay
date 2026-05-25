@@ -4,10 +4,11 @@
 
 This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
 
-1. When joining or resuming work, follow the Agent Relay read order in `.agent-relay/PROTOCOL.md`.
-2. Choose one session agent name and use it consistently in `relay.log`.
-3. For meaningful work, append `TASK_BEGIN` to `.agent-relay/relay.log` before starting and `TASK_DONE` after finishing.
-4. Create a handoff only when the next agent cannot continue from the issue and relay log alone within 5 minutes.
-5. When creating a handoff, put long context in a handoff file and link it from `relay.log` with `path=`.
-6. Update `.agent-relay/GUIDANCE.md` only for durable user instructions, constraints, preferences, conventions, security rules, or "do not" rules.
-7. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
+1. When joining or resuming work, read and follow `.agent-relay/PROTOCOL.md`.
+2. Before starting every new request, read `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`.
+3. Use the `PM`, `Planner`, and `Executor` roles and keep Planner and Executor communication routed through the PM.
+4. Keep `.agent-relay/relay.log` append-only and store round artifacts in `.agent-relay/runs/` without overwriting older rounds.
+5. The PM must not append the final `DONE` event or close the task until the user explicitly approves completion.
+6. If a Planner or Executor instance has five or more follow-up messages, the task topic changes, or the instance slows down or confuses context, the PM asks the user whether to replace that role instance.
+7. Update `.agent-relay/GUIDANCE.md` and `.agent-relay/lesson-learned/` only after user approval.
+8. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.

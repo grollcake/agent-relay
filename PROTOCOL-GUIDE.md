@@ -5,35 +5,156 @@
 
 ## 1. Agent Relay란
 
-Agent Relay는 서로 다른 AI 코딩 에이전트가 같은 프로젝트에서 작업을 이어받기 위한 파일 기반 규약입니다.
+Agent Relay는 **PM / Planner / Executor 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다. 프로젝트 안에 작업 분류, 이벤트 타임라인, 라운드 산출물, 작업 맥락 전달 표준을 남기는 것입니다.
 
-지원하려는 상황은 다음과 같습니다.
+## 2. 에이전트 팀 구성
 
-- Claude Code, Codex CLI, Cursor 같은 서로 다른 도구가 같은 프로젝트를 다룰 때
-- 한 에이전트가 시작한 작업을 다른 에이전트나 다른 세션이 이어받을 때
-- 세션이 끊긴 뒤 최근 작업 맥락을 빠르게 복구해야 할 때
-- 분석, 구현, 테스트, 리뷰처럼 역할이 나뉘는 흐름에서 최소한의 인수인계가 필요할 때
+저장소 수준 지시가 다른 절차를 지정하지 않는 한, 표준 구현 작업에는 먼저 **PM / Planner / Executor 에이전트 팀**을 구성하고 PM / Planner / Executor 프로토콜을 적용합니다. 리더는 **PM (허브)**이며 사용자 소통, 분류, 범위/위험 결정, 위임, 결과 해석, 최종 보고를 담당합니다. Planner와 Executor는 PM을 통해서만 통신합니다.
 
-Agent Relay는 오케스트레이터가 아닙니다. 에이전트를 실행하거나 병렬로 관리하지 않습니다.
-역할은 단순합니다. 프로젝트 안에 작은 작업 기억과 인수인계 표준을 남기는 것입니다.
+| 역할 | 책임 |
+| --- | --- |
+| **PM (허브)** | 작업을 라우팅하고 증거가 요청을 충족하는지 판단합니다. 단순 중계자가 아닙니다. |
+| **Planner** | `PLAN`을 작성하고, 구현이 계획과 일치하는지 검토합니다. 발견은 `blocker`(반드시 수정) 또는 `nit`(비차단)으로 표시합니다. |
+| **Executor** | `PLAN`을 구현하고 검증합니다. 모호함은 범위를 넓히지 않은 채 PM에게 되돌립니다. |
 
-## 2. 핵심지침
+Planner와 Executor는 **PM을 통해서만** 통신합니다. 사용 도구의 능력에 따라 배정된 멤버를 병렬 또는 순차로 실행할 수 있지만, 기록 없이 단일 에이전트 작업으로 축소해서는 안 됩니다.
 
-Agent Relay의 핵심지침은 매 세션에서 에이전트가 실제로 따라야 하는 작업 흐름입니다.
+**강제 선행 규칙:** PM, Planner, Executor는 새로운 요청에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인합니다. 이 확인 없이 요청을 분류하거나 계획·구현·검토를 시작하지 않습니다.
 
-1. 작업에 합류하거나 재개할 때는 `.agent-relay/PROTOCOL.md`의 Agent Relay 읽기 순서를 따릅니다.
-2. 세션 에이전트 이름을 하나 정하고 `relay.log`에서 일관되게 씁니다.
-3. 의미 있는 작업은 시작 전 `TASK_BEGIN`, 완료 후 `TASK_DONE`으로 `.agent-relay/relay.log`에 기록합니다.
-4. 다음 에이전트가 이슈와 `relay.log`만 보고 5분 안에 이어받기 어려울 때만 handoff를 만듭니다.
-5. handoff를 만들 때는 긴 맥락을 파일로 분리하고 `relay.log`에 `path=`로 연결합니다.
-6. 오래 유지될 사용자 지침, 제약, 선호, 관례, 보안 규칙, 금지사항만 `.agent-relay/GUIDANCE.md`에 기록합니다.
-7. `.agent-relay/`에 비밀정보, 자격증명, 고객정보, 민감한 운영정보를 저장하지 않습니다.
+## 3. 작업 분류
 
-Git 정책처럼 설치와 저장소 운영에 관한 규칙은 핵심지침 번호에 넣지 않고 별도 기타 규칙으로 둡니다.
+필수 지침·교훈 확인을 마친 뒤 PM은 모든 요청을 분류합니다.
 
-## 3. 권장 파일 구조
+| 분류 | 일반적 범위 | 처리 방식 |
+| --- | --- | --- |
+| 기록 제외 | 단순 질문 답변, 짧은 설명, 브레인스토밍 | 응답만 하고 이벤트를 남기지 않음 |
+| `Trivial` | 사소한 텍스트/설정 변경, 명백한 국소 편집 | PM이 직접 처리하고 `REQUEST → RUN_DONE` 기록 |
+| `Standard` | 다중 파일 구현, 설계 판단, 구현 검증이 필요한 작업 | Planner → Executor → Planner 검토 |
 
-사용자 프로젝트에 도입된 뒤의 권장 구조입니다.
+## 4. 백그라운드 위임
+
+`Standard` 작업은 가능한 한 백그라운드로 위임합니다. PM은 위임 후에도 사용자 응답을 계속 담당합니다. 완료를 기다리기 위한 폴링이나 sleep은 하지 않습니다. 백그라운드 실행이 어렵다면 같은 단계와 산출물 전달 방식을 순차적으로 따릅니다.
+
+## 5. 이벤트 타임라인
+
+`relay.log`는 추가 전용 이벤트 타임라인입니다. 기존 줄을 수정하지 않습니다.
+
+```text
+<YYYY-MM-DDTHH:MM:SS> | <task-id> | <event> | <role> | <summary> | <path?>
+```
+
+- `timestamp`는 KST 기준 `YYYY-MM-DDTHH:MM:SS` 형식으로 기록합니다.
+- `task-id`는 무작위 소문자 영문 4글자를 씁니다.
+- 이벤트는 `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE`만 씁니다.
+- PM 직접 처리 흐름은 `REQUEST → RUN_DONE`입니다.
+- 표준 처리 흐름은 `REQUEST → PLAN → RUN → REVIEW → DONE`입니다.
+- `role` 주변 공백은 정렬용이며 의미가 없습니다.
+- 긴 설명은 `relay.log`에 직접 넣지 말고 `.agent-relay/runs/`의 라운드 산출물로 분리합니다.
+
+예시:
+
+```text
+2026-05-25T20:40:00 | qmxz | REQUEST  | PM       | Fix typo in README
+2026-05-25T20:41:00 | qmxz | RUN_DONE | PM       | Fixed typo directly
+2026-05-25T20:50:00 | abcd | REQUEST  | PM       | Update protocol docs
+2026-05-25T20:55:00 | abcd | PLAN     | Planner  | Plan written | .agent-relay/runs/20260525-docs-PLAN.md
+2026-05-25T21:10:00 | abcd | RUN      | Executor | Changes submitted | .agent-relay/runs/20260525-docs-RUN-01.md
+2026-05-25T21:15:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-docs-REVIEW-01.md
+2026-05-25T21:16:00 | abcd | DONE     | PM       | Completed
+```
+
+## 6. 산출물
+
+모든 라운드 산출물은 `.agent-relay/runs/`에 작성하며, 작업당 하나의 안정된 `<date>-<slug>` 키를 씁니다. **이전 라운드를 덮어쓰지 않습니다.**
+
+| 산출물 | 경로 | 작성자 | 의미 |
+| --- | --- | --- | --- |
+| Plan | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-PLAN.md` | Planner | 계획과 성공 기준 |
+| Submission | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-RUN-<NN>.md` | Executor | 라운드 `<NN>`의 변경/검증/리스크 |
+| Review | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-REVIEW-<NN>.md` | Planner | 같은 라운드 발견 |
+| Acceptance | `.agent-relay/runs/<YYYYMMDD>-<SLUG>-DONE.md` | Planner | `blocker` 없이 검토를 통과한 수락 결과 |
+
+- `<NN>`은 `01`부터 시작합니다.
+- `<SLUG>`는 PM이 정한 소문자 kebab-case 작업 키를 씁니다.
+- `task-id`는 `relay.log` 이벤트 식별자이고, `<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키입니다.
+- 같은 작업의 모든 라운드 산출물은 같은 `<YYYYMMDD>-<SLUG>` 키를 씁니다.
+- 산출물은 `.agent-relay/templates/plan.md`, `run.md`, `review.md`, `done.md` 형식을 따릅니다.
+- Executor는 절대 `DONE`을 쓰지 않습니다.
+- Planner는 검토에 `blocker`가 없을 때 `DONE` 산출물을 작성합니다. `nit`는 `DONE`에 기록할 수 있습니다.
+- **사용자가 명시적으로 승인하기 전에는 PM이 `DONE` 이벤트를 기록하여 작업을 종료할 수 없습니다.**
+- 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록합니다.
+- `relay.log`는 `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE` 이벤트를 추가-전용으로 남기고 `path`로 산출물을 가리킵니다.
+
+## 7. 파이프라인
+
+1. PM이 요청을 분류합니다.
+2. 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
+3. `Trivial`이면 PM이 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫습니다.
+4. `Standard`이면 Planner가 `PLAN`을 작성합니다.
+5. Executor는 `PLAN`, 성공 기준, 범위를 받아 구현하고 `RUN-01`을 씁니다.
+6. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
+7. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. PM은 결과·nit·리스크와 `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
+8. 사용자가 명시적으로 승인한 뒤에만 PM이 `DONE` 이벤트를 기록하여 작업을 닫습니다.
+9. `DONE` 승인을 받은 PM은 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
+10. `blocker`가 있으면 Executor가 다음 `RUN`을, Planner가 다음 `REVIEW`를 씁니다.
+11. `REVIEW-03`까지도 `blocker`가 남으면 PM은 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청합니다.
+
+`Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있습니다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 PM은 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가합니다.
+
+## 8. 위임과 보고
+
+### 컨텍스트 관리
+
+PM, Planner, Executor는 한 작업 안에서 컨텍스트 교체 없이 연속 사용하는 것을 전제로 합니다.
+
+PM은 컨텍스트가 불필요하게 커지지 않도록 위임 결과를 받을 때 산출물 **경로 + 최소 결정 정보**만 보관합니다.
+
+- 한 줄 결과
+- 한 줄 검증 상태
+- 해당 시 `blocker` 건수/요약
+- 잔존 리스크 또는 사용자 결정 요구
+
+결정적 모호함이나 사용자 결정이 필요할 때를 제외하고 전체 산출물을 PM 컨텍스트에 적재하지 않습니다.
+
+Planner/Executor는 가능하면 같은 컨텍스트를 유지하되, 다음 중 하나라도 발생하면 PM이 사용자에게 **교체 여부**를 물어야 합니다.
+
+- 한 인스턴스에 후속 메시지가 5개 이상 누적
+- 작업 주제가 명백히 바뀜
+- 응답이 눈에 띄게 느려지거나 이전 컨텍스트를 혼동
+
+### 위임 시 필수 필드
+
+Planner/Executor에게 보내는 모든 프롬프트는 자기완결적이어야 하며 다음을 포함합니다.
+
+- 목표(goal)
+- 관련 파일 또는 조사 범위
+- 산출물 타입과 정확한 경로
+- 성공 기준과 검증 방법
+- 범위 외 작업 금지 명시
+- 불명확한 사항은 추정하지 말고 PM에게 되돌릴 것
+- 단계에 필요한 입력 산출물 경로
+
+### 보고 시 필수 필드
+
+Planner가 PM에게 보고할 때는 다음만 간결히 포함합니다.
+
+- `PLAN`/`REVIEW`/`DONE` 산출물 경로
+- 판단 결과
+- `blocker` 수와 요약
+- `nit` 요약
+- 사용자 결정 필요 여부
+
+Executor가 PM에게 보고할 때는 다음만 간결히 포함합니다.
+
+- `RUN` 산출물 경로
+- 변경 요약
+- 검증 결과
+- 미해결 리스크
+- 범위 밖으로 넘긴 사항
+
+## 9. 목표 파일 구조
+
+Agent Relay를 사용자 프로젝트에 도입했을 때의 `runs/` 중심 파일 구조입니다.
 
 ```text
 project-root/
@@ -47,72 +168,55 @@ project-root/
 └── .agent-relay/
     ├── PROTOCOL.md
     ├── VERSION
-    ├── INDEX.md
     ├── GUIDANCE.md             # 장기 지침/제약 누적
+    ├── LESSON-LEARNED.md       # 완료 작업에서 얻은 해결 지식 기록 안내
     ├── relay.log
-    ├── handoff/
+    ├── lesson-learned/         # 완료 작업에서 얻은 해결 지식 기록
+    │   └── .gitkeep
+    ├── runs/                   # 라운드 산출물(PLAN/RUN/REVIEW/DONE)
     │   └── .gitkeep
     └── templates/
-        ├── task-begin.md
-        ├── handoff.md
-        └── task-done.md
+        ├── guidance.md
+        ├── lesson-learned.md
+        ├── plan.md
+        ├── run.md
+        ├── review.md
+        └── done.md
 ```
 
-실제 복사 원본은 이 저장소의 `bootstrap/` 트리입니다. `bootstrap/` 안의 경로는 목적지 프로젝트 기준 경로와 일치합니다.
-
-## 4. 파일별 역할
+## 10. 파일별 역할
 
 | 파일 | 필수 여부 | 역할 |
 |---|---:|---|
 | `AGENTS.md` | 필수 | 모든 에이전트가 읽는 공통 작업 지침입니다. |
 | `.agent-relay/PROTOCOL.md` | 필수 | Agent Relay의 최소 규칙입니다. |
 | `.agent-relay/VERSION` | 필수 | 설치 버전입니다. 업데이트 시 기본 upstream과 비교하는 기준으로 씁니다. |
-| `.agent-relay/INDEX.md` | 권장 | 프로젝트 식별 정보, 중요 파일, 열린 handoff를 빠르게 찾는 지도입니다. |
 | `.agent-relay/GUIDANCE.md` | 누적 관리 | 세션을 넘어 유지할 사용자 지침, 제약, 금지사항을 담는 문서입니다. |
-| `.agent-relay/relay.log` | 필수 | 추가 전용 작업 이벤트 로그입니다. |
-| `.agent-relay/handoff/` | 필수 | 긴 인수인계 문서를 두는 디렉토리입니다. |
-| `.agent-relay/templates/` | 권장 | 로그와 인수인계 작성 형식 예시입니다. |
+| `.agent-relay/LESSON-LEARNED.md` | 필수 | 완료 작업에서 얻은 해결 지식 기록의 목적과 작성 방식을 설명합니다. |
+| `.agent-relay/relay.log` | 필수 | 작업 이벤트 로그입니다 (추가 전용) |
+| `.agent-relay/lesson-learned/` | 누적 관리 | 완료된 작업에서 얻은 재사용 가능한 해결 지식이 쌓이는 디렉토리입니다. |
+| `.agent-relay/runs/` | 목표 필수 | `Standard` 작업의 라운드 산출물이 쌓이는 디렉토리입니다. |
+| `.agent-relay/templates/` | 목표 권장 | 산출물·누적 문서 작성 형식 예시입니다. |
 
-## 5. 합류할 때 읽는 순서
+## 11. 합류할 때 읽는 순서
 
-새 세션, 새 에이전트, 오래된 작업 재개, handoff 인수 상황에서는 먼저 `AGENTS.md`를 읽습니다.
-그 다음 이번 세션의 에이전트 이름을 정합니다.
+새 세션을 시작하면 AI 에이전트는 `AGENTS.md`를 우선 읽습니다. `AGENTS.md`에서 Agent Relay 안내를 확인하면 `.agent-relay/PROTOCOL.md`를 읽고, 그 규칙에 따라 프로젝트 맥락과 진행 중인 작업을 확인합니다.
 
-형식:
-
-```text
-<에이전트>(<LLM 또는 버전>[, <역할>])
-```
-
-예:
+Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 
 ```text
-Codex(GPT-5.5)
-Claude Code(Claude Sonnet 4.5)
-Cursor(GPT-5.5, Reviewer)
+1. AGENTS.md에서 Agent Relay 안내 확인
+2. .agent-relay/PROTOCOL.md
+3. .agent-relay/GUIDANCE.md
+4. .agent-relay/LESSON-LEARNED.md
+5. .agent-relay/lesson-learned/의 기존 기록
+6. .agent-relay/relay.log의 마지막 50줄
+7. 진행 중인 라운드가 있으면 .agent-relay/runs/의 최신 PLAN/RUN/REVIEW 읽기
 ```
 
-LLM 또는 버전을 모르면 괄호 없이 에이전트 이름만 씁니다. 예: `Codex`, `Claude Code`, `Cursor`.
+같은 세션에서 연속 작업 중이라면 매 사용자 메시지마다 `relay.log`를 다시 읽지 않습니다. 다만 새로운 요청에 착수할 때는 PM, Planner, Executor 모두 `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`를 반드시 다시 읽습니다.
 
-사람이 직접 수행한 작업에만 `Human`을 씁니다.
-
-전체 순서는 다음과 같습니다.
-
-```text
-1. AGENTS.md
-2. 세션 에이전트 이름 결정
-3. README.md
-4. .agent-relay/GUIDANCE.md
-5. .agent-relay/PROTOCOL.md
-6. .agent-relay/INDEX.md
-7. .agent-relay/relay.log의 마지막 50줄
-8. 참조된 handoff 파일이 있으면 읽음
-```
-
-같은 세션에서 연속 작업 중이라면 매 사용자 메시지마다 `relay.log`를 다시 읽지 않습니다.
-세션 시작 때 읽고, 의미 있는 작업을 시작할 때 `TASK_BEGIN`, 마칠 때 `TASK_DONE`을 기록하는 흐름이면 충분합니다.
-
-## 6. 기록해야 하는 작업
+## 12. 기록해야 하는 작업
 
 다음 작업은 `relay.log`에 결과를 남기는 것이 좋습니다.
 
@@ -123,102 +227,19 @@ LLM 또는 버전을 모르면 괄호 없이 에이전트 이름만 씁니다. �
 - 디버깅 시도
 - 아키텍처 또는 설계 판단
 - 이슈 상태 변경
-- 다음 에이전트가 알아야 할 맥락 생성
+- 다음 역할이나 후속 세션이 알아야 할 맥락 생성
+
+`Standard`로 분류된 작업은 라운드 산출물(`PLAN`/`RUN`/`REVIEW`/`DONE`)이 본문 기록이고, `relay.log`는 그 산출물을 가리키는 이벤트 인덱스 역할을 합니다.
 
 단순 질의응답, 짧은 설명, 브레인스토밍은 보통 기록하지 않습니다.
 사용자가 맥락 보존을 명시적으로 요청한 경우에는 예외로 기록할 수 있습니다.
 
-## 7. relay.log 형식
-
-`relay.log`는 추가 전용입니다. 기존 줄을 수정하지 않습니다.
-정정이 필요하면 새 `CORRECTION` 이벤트를 추가합니다.
-
-권장 이벤트 타입은 다음과 같습니다.
-
-- `SESSION_START`
-- `TASK_BEGIN`
-- `TASK_DONE`
-- `HANDOFF`
-- `HANDOFF_RECEIVED`
-- `HANDOFF_CLOSED`
-- `CORRECTION`
-
-의미 있는 작업을 시작할 때는 먼저 `TASK_BEGIN`을 남깁니다.
-
-파일 변경, 테스트 실행, 사소하지 않은 조사, 세션이 끊기면 복구가 필요할 수 있는 작업은 `TASK_BEGIN` 대상입니다. 단순 질의응답이나 짧은 설명은 제외합니다.
-
-작업이 너무 빨리 끝나서 시작 전에 `TASK_BEGIN`을 남기지 못했다면, 이후 `TASK_BEGIN`과 `TASK_DONE`을 같은 `task=` 값으로 순서대로 추가합니다.
-
-```text
-<timestamp> | TASK_BEGIN | agent=<agent> | task=<MMDD-xxx> | summary=<task summary>
-```
-
-가장 자주 쓰는 `TASK_DONE` 형식은 다음과 같습니다.
-
-```text
-<timestamp> | TASK_DONE  | agent=<agent> | task=<MMDD-xxx> | result=<success|partial|failed|blocked> | files=<summary> | tests=<summary>
-```
-
-`agent`는 `<에이전트>(<LLM 또는 버전>[, <역할>])` 형식으로 적습니다. 예: `Codex(GPT-5.5)`, `Cursor(GPT-5.5, Reviewer)`. LLM 또는 버전을 모르면 `Codex`처럼 에이전트 이름만 씁니다. 사람이 직접 수행한 작업에만 `Human`을 씁니다.
-같은 세션에서는 `agent=`에 들어가는 에이전트 이름을 일관되게 유지합니다.
-
-`task`는 `TASK_BEGIN`, `TASK_DONE`, 관련 `HANDOFF`를 연결하는 짧은 키입니다. `TASK_BEGIN` 시점의 로컬 월일과 무작위 소문자 3글자로 만듭니다. 예: `0428-qmx`. 최근 릴레이 맥락에서 같은 `task=`가 아직 닫히지 않았으면 다시 생성합니다.
-
-`TASK_DONE`은 작업 시도가 닫혔다는 뜻이고, `result`는 그 결과가 성공인지, 부분 완료인지, 실패인지, 차단 상태인지를 기록합니다.
-
-예시:
-
-```text
-2026-04-28T16:20:00+09:00 | TASK_BEGIN | agent=Codex(GPT-5.5) | task=0428-qmx | summary="Align relay event names"
-2026-04-28T16:40:00+09:00 | TASK_DONE  | agent=Codex(GPT-5.5) | task=0428-qmx | result=success | files=src/cube/state.ts, tests/cube-state.test.ts | tests=npm test passed
-```
-
-긴 설명은 `relay.log`에 직접 넣지 말고 `.agent-relay/handoff/` 아래 문서로 분리한 뒤 로그에서는 경로만 참조합니다.
-
-handoff 파일을 만들 때는 `relay.log`에 `HANDOFF` 이벤트를 추가하고 `path=<handoff-file>`로 연결합니다.
-
-예시:
-
-```text
-2026-04-28T16:40:00+09:00 | HANDOFF | agent=Codex(GPT-5.5) | task=0428-qmx | result=blocked | path=.agent-relay/handoff/0428-qmx--auth-refresh.md | summary="Auth refresh behavior needs follow-up analysis"
-```
-
-## 8. handoff 작성 기준
-
-handoff는 모든 작업마다 쓰는 문서가 아닙니다.
-다음 작업자가 `relay.log`와 관련 이슈만 보고 5분 안에 이어받기 어려울 때 작성합니다.
-
-handoff가 필요한 경우:
-
-- 다른 에이전트나 다른 역할이 이어서 작업해야 하는 경우
-- 결과가 `partial`, `failed`, `blocked`인 경우
-- 테스트, 리뷰, 분석을 다른 역할이 이어받아야 하는 경우
-- 중요한 맥락이 로그 한 줄에 담기 어려운 경우
-
-handoff가 필요하지 않은 경우:
-
-- 작업이 완료되었고 다음 소유자가 없는 경우
-- `relay.log` 한 줄로 충분히 설명되는 경우
-- 별도 인수인계 없이 다음 작업자가 바로 진행할 수 있는 경우
-
-파일 이름 형식:
-
-```text
-.agent-relay/handoff/<task>--<topic>.md
-```
-
-예시:
-
-```text
-.agent-relay/handoff/0428-qmx--cube-rotation.md
-```
-
-## 9. GUIDANCE 사용 기준
+## 13. GUIDANCE 사용 기준
 
 `GUIDANCE.md`는 기본 템플릿으로 복사됩니다.
 부트스트랩 직후 억지로 채우는 문서가 아닙니다.
 
-이 파일은 진행 상태, 현재 작업, 임시 계획, 다음 작업을 기록하는 곳이 아닙니다. 그런 정보는 `relay.log`와 handoff에 둡니다.
+이 파일은 진행 상태, 현재 작업, 임시 계획, 다음 작업을 기록하는 곳이 아닙니다. 그런 정보는 `relay.log`와 라운드 산출물에 둡니다.
 
 대신 Agent Relay를 사용하는 동안 사용자가 지속적으로 주는 장기 지침을 누적합니다.
 
@@ -259,26 +280,27 @@ handoff가 필요하지 않은 경우:
 - "먼저 다른 구현을 시도해봐"
 - "현재 의심 원인은 race condition"
 
-## 10. 부트스트랩 절차
+## 14. 부트스트랩 절차
 
-대상 프로젝트에 Agent Relay를 적용할 때는 `BOOTSTRAP.md`를 기준으로 진행합니다.
-핵심 절차는 다음과 같습니다.
+대상 프로젝트에 Agent Relay를 적용할 때의 실제 절차는 `BOOTSTRAP.md`를
+기준으로 진행합니다. 아래는 `README.md`의 `runs/` 중심 목표 구조를
+기준으로 한 핵심 절차입니다.
 
-1. 부트스트랩 세션의 에이전트 이름을 정합니다.
+1. 부트스트랩 이후 작업을 맡을 `PM`, `Planner`, `Executor` 팀을 구성합니다.
 2. `.agent-relay/`가 이미 있으면 아무 파일도 바꾸지 않고 중단 후 보고합니다.
 3. 대상 프로젝트의 `AGENTS.md`, 도구별 지시 파일 존재 여부를 확인합니다.
 4. `AGENTS.md`가 없으면 `bootstrap/AGENTS.md`를 복사합니다.
 5. `AGENTS.md`가 이미 있으면 기존 내용을 보존하고 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션만 병합합니다.
 6. 도구별 지시 파일을 필요에 따라 병합합니다.
-7. `bootstrap/.agent-relay/`를 복사합니다.
-8. `relay.log`의 자리표시자 timestamp와 `agent=` 값을 현재 세션 정보로 바꿉니다.
+7. `bootstrap/.agent-relay/`를 복사합니다. `lesson-learned/`와 `runs/`는 빈 디렉토리(`.gitkeep`)로 생성합니다.
+8. `relay.log`의 자리표시자 timestamp와 이벤트 줄을 현재 작업 정보에 맞게 바꿉니다.
 9. `.agent-relay/VERSION`에 설치 버전을 기록합니다.
-10. `INDEX.md`의 자리표시자를 프로젝트 정보로 채웁니다.
-11. `GUIDANCE.md`는 장기 지침과 제약을 누적하는 문서라고 안내합니다.
+10. `GUIDANCE.md`는 장기 지침과 제약을 누적하는 문서라고 안내합니다.
+11. `LESSON-LEARNED.md`는 완료된 작업에서 얻은 해결 지식 기록 안내 문서라고 안내합니다.
 12. 비밀정보가 `.agent-relay/`에 들어가지 않았는지 확인합니다.
 13. Git 저장소라면 `.agent-relay/`가 커밋 대상인지 확인합니다.
 
-## 11. 업데이트 절차
+## 15. 업데이트 절차
 
 사용자가 "agent-relay 최신화해줘", "업데이트해줘", "sync 해줘"처럼 요청하면 새 부트스트랩이 아니라 업데이트 절차를 수행합니다.
 
@@ -286,13 +308,15 @@ handoff가 필요하지 않은 경우:
 2. 기본 upstream `https://github.com/grollcake/agent-relay`의 최신 `main`을 임시 위치에 가져와 현재 프로젝트와 비교합니다.
 3. `AGENTS.md`는 최신 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션과 비교해 현재 파일의 Agent Relay 섹션만 교체하거나 보강합니다.
 4. `.agent-relay/PROTOCOL.md`와 `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
-5. `.agent-relay/GUIDANCE.md`, `.agent-relay/relay.log`, `.agent-relay/handoff/`는 덮어쓰지 않습니다.
-6. `.agent-relay/INDEX.md`는 프로젝트별 지도이므로 덮어쓰지 않고, 새 권장 섹션이 있으면 사용자 확인 후 보강합니다.
-7. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신하고 `relay.log`에 `TASK_BEGIN` / `TASK_DONE` 쌍을 추가합니다.
+5. `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
+6. `.agent-relay/LESSON-LEARNED.md`는 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
+7. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신하고, 업데이트 작업을 `REQUEST → RUN_DONE` 또는 `REQUEST → PLAN → RUN → REVIEW → DONE` 흐름으로 기록합니다.
+
+이전 버전의 `relay.log`가 `agent=`, `task=`, `TASK_BEGIN` 같은 형식을 사용하더라도 기존 줄은 수정하지 않습니다. 새 버전 적용 후 추가하는 이벤트부터 새 형식을 사용합니다.
 
 `AGENTS.md`에 Agent Relay 지시와 프로젝트 고유 지시가 섞여 있어 자동 분리가 어렵다면 파일을 바꾸지 않고 충돌로 보고합니다.
 
-## 12. 도구별 지시 파일
+## 16. 도구별 지시 파일
 
 도구별 파일은 선택입니다. 사용자가 해당 도구를 쓰는 흔적이 있을 때만 추가하거나 병합합니다.
 
@@ -305,7 +329,7 @@ handoff가 필요하지 않은 경우:
 해당 파일이나 디렉토리가 없으면 새로 만들지 않는 것이 기본입니다.
 예외는 `.cursor/` 디렉토리가 이미 있는 경우의 Cursor rule 파일입니다.
 
-## 13. 보안 규칙
+## 17. 보안 규칙
 
 `.agent-relay/`에는 다음 정보를 저장하지 않습니다.
 
@@ -317,19 +341,19 @@ handoff가 필요하지 않은 경우:
 - 민감한 내부 정보
 - 운영 비밀
 
-이 규칙은 `relay.log`, `INDEX.md`, `GUIDANCE.md`, handoff 문서 모두에 적용됩니다.
+이 규칙은 `relay.log`, `GUIDANCE.md`, 라운드 산출물 모두에 적용됩니다.
 
-## 14. 기타 규칙: Git 정책
+## 18. 기타 규칙: Git 정책
 
 Git 저장소에서는 `.agent-relay/`를 커밋합니다.
 
-Agent Relay는 에이전트 간 작업 인수인계를 위한 프로젝트 자산입니다. 릴레이 규칙, 프로젝트 지도, 작업 로그, handoff 문서는 다음 에이전트가 같은 저장소에서 이어받을 수 있어야 합니다.
+Agent Relay는 역할 및 세션 간 작업 인수인계를 위한 프로젝트 자산입니다. 릴레이 규칙, 프로젝트 지도, 작업 로그, 라운드 산출물은 다음 역할 또는 후속 세션이 같은 저장소에서 이어받을 수 있어야 합니다.
 
 따라서 `.agent-relay/`를 `.gitignore`에 추가하지 않습니다. 이미 무시 규칙이 있다면 제거합니다.
 
 비밀정보는 커밋 여부와 무관하게 `.agent-relay/`에 저장하지 않습니다.
 
-## 15. 사용자에게 줄 수 있는 짧은 호출문
+## 19. 사용자에게 줄 수 있는 짧은 호출문
 
 매번 긴 규칙을 붙일 필요는 없습니다.
 
@@ -350,9 +374,9 @@ AGENTS.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
 Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay read order before acting.
 ```
 
-## 16. 배포 파일 위치
+## 20. 배포 파일과 목표 템플릿 위치
 
-정식 템플릿과 원문 규칙은 다음 파일을 기준으로 합니다.
+현재 존재하는 배포 파일과 `runs/` 중심 목표 템플릿은 다음과 같습니다.
 
 | 파일 | 용도 |
 |---|---|
@@ -360,22 +384,29 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `bootstrap/AGENTS.md` | 대상 프로젝트 루트에 둘 공통 지시문 |
 | `bootstrap/.agent-relay/PROTOCOL.md` | Agent Relay 정식 최소 규칙 |
 | `bootstrap/.agent-relay/VERSION` | 설치 버전 템플릿 |
-| `bootstrap/.agent-relay/INDEX.md` | 프로젝트 지도 템플릿 |
 | `bootstrap/.agent-relay/GUIDANCE.md` | 장기 지침/제약 누적 템플릿 |
+| `bootstrap/.agent-relay/LESSON-LEARNED.md` | 완료 작업에서 얻은 해결 지식 기록 안내 |
 | `bootstrap/.agent-relay/relay.log` | 초기 로그 템플릿 |
-| `bootstrap/.agent-relay/templates/task-begin.md` | `TASK_BEGIN` 로그 형식 |
-| `bootstrap/.agent-relay/templates/task-done.md` | `TASK_DONE` 로그 형식 |
-| `bootstrap/.agent-relay/templates/handoff.md` | handoff 문서 형식 |
+| `bootstrap/.agent-relay/lesson-learned/` | 완료 작업에서 얻은 해결 지식 기록 디렉토리 |
+| `bootstrap/.agent-relay/templates/guidance.md` | `GUIDANCE.md` 누적 지침 형식 |
+| `bootstrap/.agent-relay/templates/lesson-learned.md` | 해결 지식 기록 형식 |
+| `bootstrap/.agent-relay/templates/plan.md` | `PLAN` 산출물 형식 |
+| `bootstrap/.agent-relay/templates/run.md` | `RUN-NN` 산출물 형식 |
+| `bootstrap/.agent-relay/templates/review.md` | `REVIEW-NN` 산출물 형식 |
+| `bootstrap/.agent-relay/templates/done.md` | `DONE` 산출물 형식 |
 
-## 17. 정리
+## 21. 정리
 
-Agent Relay는 큰 프로세스 관리 체계가 아니라, 에이전트가 작업을 끊기지 않게 넘기기 위한 최소 릴레이 습관입니다.
+Agent Relay는 PM / Planner / Executor 에이전트 팀이 역할을 나누고, 이벤트 타임라인과 산출물을 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다.
 
-핵심 판단 기준은 하나입니다.
+핵심 판단 기준은 세 개입니다.
 
 ```text
-다음 에이전트가 5분 안에 이어받을 수 있는가?
+1) 이 요청은 기록 제외인가, Trivial인가, Standard인가?
+2) Standard라면 PLAN → RUN → REVIEW → DONE 라운드를 지키고 있는가?
+3) 다음 역할 또는 후속 세션이 이벤트 타임라인과 산출물로 이어받을 수 있는가?
 ```
 
-가능하면 `relay.log` 한 줄이면 충분합니다.
-불가능하면 handoff 문서를 남깁니다.
+기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
+`Trivial`이면 PM이 직접 처리하고 `REQUEST → RUN_DONE` 흐름이면 충분합니다.
+`Standard`이면 PLAN → RUN → REVIEW를 거치고, `blocker`가 없으면 Planner가 `DONE` 산출물을 작성합니다. PM은 사용자가 명시적으로 승인한 경우에만 `DONE` 이벤트를 기록하여 작업을 닫습니다.

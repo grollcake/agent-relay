@@ -2,19 +2,19 @@ Follow `AGENTS.md`.
 
 This project uses Agent Relay.
 
-Read `AGENTS.md` first. Then choose this session's agent name and use it consistently in relay entries.
+Read `AGENTS.md` first.
 
-Use `<agent>(<llm-or-version>[, <role>])`, for example `Codex(GPT-5.5)`.
+When joining or resuming work, then read:
 
-Then read:
-
-1. `README.md`
+1. `.agent-relay/PROTOCOL.md`
 2. `.agent-relay/GUIDANCE.md`
-3. `.agent-relay/PROTOCOL.md`
-4. `.agent-relay/INDEX.md`
+3. `.agent-relay/LESSON-LEARNED.md`
+4. existing records under `.agent-relay/lesson-learned/`
 5. the last 50 lines of `.agent-relay/relay.log`
-6. relevant handoff files, if referenced
+6. if a round is open, its latest `PLAN`, `RUN`, and `REVIEW` artifacts under `.agent-relay/runs/`
 
-After meaningful file, test, or issue changes, append one `TASK_DONE` entry to `.agent-relay/relay.log`.
+Before every new request, reread `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`.
 
-When the user gives durable guidance, constraints, preferences, conventions, security rules, or "do not" rules, update `.agent-relay/GUIDANCE.md`.
+Do not re-read relay context before every message in the same active session.
+
+Follow `.agent-relay/PROTOCOL.md` for classification, delegation, event logging, artifacts, approval, guidance, lessons, and security rules.
