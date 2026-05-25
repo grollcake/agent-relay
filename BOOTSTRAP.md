@@ -102,7 +102,7 @@
 추가 설명을 펼칩니다.
 
 ```text
-Agent Relay 부트스트랩 완료. v<x.x> 적용; 설치: `.agent-relay/`, `AGENTS.md`<, `CLAUDE.md`>. 검증: 프로토콜 및 Git 추적 확인.
+Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝트는 Agent Relay 규칙을 따릅니다.
 ```
 
 ---
