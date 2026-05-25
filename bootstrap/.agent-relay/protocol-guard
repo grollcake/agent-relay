@@ -1,0 +1,133 @@
+#!/bin/sh
+set -eu
+
+LOG_FILE=".agent-relay/relay.log"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  .agent-relay/protocol-guard append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]
+  .agent-relay/protocol-guard gate <before-run|before-review|before-approval> --task-id <id>
+
+Events: REQUEST FEEDBACK PLAN RUN_ST RUN_ED REVIEW DONE RUN_DONE
+Gates:
+  before-run       requires PLAN
+  before-review    requires RUN_ED
+  before-approval  requires REVIEW
+USAGE
+}
+
+die() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
+
+trim() {
+  printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+require_log() {
+  [ -f "$LOG_FILE" ] || die "missing $LOG_FILE"
+}
+
+valid_event() {
+  case "$1" in
+    REQUEST|FEEDBACK|PLAN|RUN_ST|RUN_ED|REVIEW|DONE|RUN_DONE) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+last_matching_line() {
+  task_id="$1"
+  event="$2"
+  awk -F'|' -v task="$task_id" -v event="$event" '
+    function trim_field(value) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      return value
+    }
+    NF >= 4 && trim_field($2) == task && trim_field($3) == event { line = $0 }
+    END { if (line != "") print line }
+  ' "$LOG_FILE"
+}
+
+append_event() {
+  event="${1:-}"
+  [ -n "$event" ] || die "missing EVENT"
+  valid_event "$event" || die "invalid event: $event"
+  shift
+
+  task_id=""
+  role=""
+  summary=""
+  path=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      --role) role="${2:-}"; shift 2 ;;
+      --summary) summary="${2:-}"; shift 2 ;;
+      --path) path="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+
+  [ -n "$task_id" ] || die "missing --task-id"
+  [ -n "$role" ] || die "missing --role"
+  [ -n "$summary" ] || die "missing --summary"
+
+  case "$event" in
+    PLAN|RUN_ED|REVIEW|DONE)
+      [ -n "$path" ] || die "$event requires --path"
+      ;;
+  esac
+
+  require_log
+  timestamp="$(TZ=Asia/Seoul date '+%Y-%m-%dT%H:%M:%S')"
+
+  if [ -n "$path" ]; then
+    printf '%s | %-4s | %-8s | %-7s | %s | %s\n' \
+      "$timestamp" "$task_id" "$event" "$role" "$summary" "$path" >> "$LOG_FILE"
+  else
+    printf '%s | %-4s | %-8s | %-7s | %s\n' \
+      "$timestamp" "$task_id" "$event" "$role" "$summary" >> "$LOG_FILE"
+  fi
+
+  line="$(last_matching_line "$task_id" "$event")"
+  [ -n "$line" ] || die "append failed: matching log line not found"
+  printf '%s\n' "$line"
+}
+
+gate_event() {
+  gate="${1:-}"
+  [ -n "$gate" ] || die "missing gate name"
+  shift
+
+  task_id=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+  [ -n "$task_id" ] || die "missing --task-id"
+
+  case "$gate" in
+    before-run) event="PLAN" ;;
+    before-review) event="RUN_ED" ;;
+    before-approval) event="REVIEW" ;;
+    *) die "unknown gate: $gate" ;;
+  esac
+
+  require_log
+  line="$(last_matching_line "$task_id" "$event")"
+  [ -n "$line" ] || die "gate failed: missing $event for task-id $task_id"
+  printf '%s\n' "$line"
+}
+
+command="${1:-}"
+case "$command" in
+  append) shift; append_event "$@" ;;
+  gate) shift; gate_event "$@" ;;
+  -h|--help|help) usage ;;
+  *) usage; exit 1 ;;
+esac

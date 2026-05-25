@@ -23,6 +23,11 @@ Result: <accepted | blockers>
 
 - <file, command output, or artifact>
 
+## Relay Log
+
+- Appended event: `REVIEW`
+- Last matching `relay.log` line: `<timestamp> | <task-id> | REVIEW | Planner | <summary> | <path>`
+
 ## Required Next Step
 
 - <write DONE | request RUN-<next-NN> | ask Leader for decision>

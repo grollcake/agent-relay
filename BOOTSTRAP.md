@@ -130,6 +130,7 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 |---|---|
 | `AGENTS.md` | 최신 `bootstrap/AGENTS.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체 또는 보강 |
 | `.agent-relay/PROTOCOL.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
+| `.agent-relay/protocol-guard` | `relay.log` 이벤트 추가와 단계 전이 검증을 수행하는 보조 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
 | `.agent-relay/templates/` | 템플릿 파일은 최신 upstream과 비교해 갱신 |
 | `.agent-relay/VERSION` | 성공 후 최신 upstream의 `VERSION` 값으로 갱신 |
 | `CLAUDE.md` | 존재하는 경우 최신 `bootstrap/CLAUDE.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체 또는 보강 |

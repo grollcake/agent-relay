@@ -14,6 +14,11 @@ Plan: <path-to-plan>
 
 - `<command or check>`: <result>
 
+## Relay Log
+
+- Appended event: `RUN_ED`
+- Last matching `relay.log` line: `<timestamp> | <task-id> | RUN_ED | Runner | <summary> | <path>`
+
 ## Success Criteria Status
 
 - <criterion>: <met | not met | partial>

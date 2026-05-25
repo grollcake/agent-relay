@@ -33,6 +33,11 @@ Out of scope:
 
 - `<command or check>`: <expected result>
 
+## Relay Log
+
+- Appended event: `PLAN`
+- Last matching `relay.log` line: `<timestamp> | <task-id> | PLAN | Planner | <summary> | <path>`
+
 ## Risks Or Questions
 
 - <risk, ambiguity, or none>

@@ -123,9 +123,18 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 - **사용자가 명시적으로 승인하기 전에는 Leader가 `DONE` 이벤트를 기록하여 작업을 종료할 수 없습니다.**
 - 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록합니다.
 - `relay.log`는 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE` 이벤트를 추가-전용으로 남기고 `path`로 산출물을 가리킵니다.
-- 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업입니다. 각 단계는 산출물 작성과 해당 이벤트 추가가 모두 끝나야 완료된 것으로 봅니다.
-- 산출물 작성자가 해당 이벤트를 추가합니다. Planner는 `PLAN`/`REVIEW`, Runner는 `RUN_ED`, Leader는 `REQUEST`/`FEEDBACK`/`RUN_ST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록합니다.
-- Leader는 다음 단계 위임 전에 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인합니다.
+- 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업입니다. 각 단계는 산출물 작성, 해당 이벤트 추가, 추가한 이벤트명과 `relay.log` 마지막 일치 줄 보고가 모두 끝나야 완료된 것으로 봅니다.
+- 산출물 작성자가 해당 이벤트를 추가합니다. 가능하면 직접 `echo >> relay.log` 대신 `.agent-relay/protocol-guard append ...`를 사용합니다. Planner는 `PLAN`/`REVIEW`, Runner는 `RUN_ED`, Leader는 `REQUEST`/`FEEDBACK`/`RUN_ST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록합니다.
+- Leader는 다음 단계 위임 전에 `.agent-relay/protocol-guard gate ...` 또는 `tail -50 .agent-relay/relay.log`로 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인합니다. 확인하지 못하면 다음 단계 위임을 중단하고 해당 역할에 이벤트 기록을 재작업시킵니다.
+
+필수 게이트:
+
+| 다음 단계 | 확인할 직전 이벤트 |
+| --- | --- |
+| Runner 위임 + `RUN_ST` | `PLAN` |
+| Planner 검토 위임 | `RUN_ED` |
+| 사용자 승인 요청 | `REVIEW` |
+| 최종 `DONE` 이벤트 | 명시적 사용자 승인 |
 
 ## 7. 파이프라인
 
@@ -134,10 +143,10 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 3. `Trivial`이면 Leader가 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫습니다.
 4. `Standard`이면 Leader가 기준 브랜치를 기억하고 전용 작업 브랜치를 생성·전환한 뒤 `REQUEST`를 기록합니다.
 5. Planner가 `PLAN`을 작성합니다.
-6. Leader가 Runner에게 위임하고 `RUN_ST`를 기록합니다.
+6. Leader가 `PLAN` 이벤트를 확인한 뒤 Runner에게 위임하고 `RUN_ST`를 기록합니다.
 7. Runner는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
-8. Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
-9. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
+8. Leader가 `RUN_ED` 이벤트를 확인한 뒤 Planner에게 검토를 위임하고, Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
+9. Leader가 `REVIEW` 이벤트를 확인합니다. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
 10. 사용자가 명시적으로 승인한 뒤에만 Leader가 작업 브랜치에 `DONE` 이벤트를 기록하고 승인된 상태를 커밋한 다음 기준 브랜치로 자동 병합합니다. 커밋 또는 병합에 문제가 있으면 강제하지 않고 blocker로 보고합니다.
 11. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 작업 브랜치에 `FEEDBACK`을 기록합니다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받습니다. 이후 6번(`RUN_ST`)부터 다시 진행합니다.
 12. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
@@ -176,16 +185,20 @@ Planner/Runner에게 보내는 모든 프롬프트는 자기완결적이어야 �
 - 목표(goal)
 - 관련 파일 또는 조사 범위
 - 산출물 타입과 정확한 경로
+- append할 이벤트명
 - 성공 기준과 검증 방법
 - 범위 외 작업 금지 명시
 - 불명확한 사항은 추정하지 말고 Leader에게 되돌릴 것
 - 단계에 필요한 입력 산출물 경로
+- 완료 전 산출물 작성, 이벤트 append, 마지막 일치 로그 줄 보고를 모두 수행할 것
 
 ### 보고 시 필수 필드
 
 Planner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
 
 - `PLAN`/`REVIEW`/`DONE` 산출물 경로
+- append한 이벤트명
+- 해당 `task-id`와 이벤트명의 `relay.log` 마지막 일치 줄
 - 판단 결과
 - `blocker` 수와 요약
 - `nit` 요약
@@ -194,6 +207,8 @@ Planner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
 Runner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
 
 - `RUN` 산출물 경로
+- append한 이벤트명
+- 해당 `task-id`와 이벤트명의 `relay.log` 마지막 일치 줄
 - 변경 요약
 - 검증 결과
 - 미해결 리스크
@@ -224,6 +239,7 @@ project-root/
     ├── GUIDANCE.md             # 장기 지침/제약 누적
     ├── LESSON-LEARNED.md       # 완료 작업에서 얻은 해결 지식 기록 안내
     ├── relay.log
+    ├── protocol-guard                # relay.log 이벤트 추가와 단계 전이 검증 CLI
     ├── lesson-learned/         # 완료 작업에서 얻은 해결 지식 기록
     │   └── .gitkeep
     ├── runs/                   # 라운드 산출물(PLAN/RUN/REVIEW/DONE)
@@ -247,6 +263,7 @@ project-root/
 | `.agent-relay/GUIDANCE.md` | 누적 관리 | 세션을 넘어 유지할 사용자 지침, 제약, 금지사항을 담는 문서입니다. |
 | `.agent-relay/LESSON-LEARNED.md` | 필수 | 완료 작업에서 얻은 해결 지식 기록의 목적과 작성 방식을 설명합니다. |
 | `.agent-relay/relay.log` | 필수 | 작업 이벤트 로그입니다 (추가 전용) |
+| `.agent-relay/protocol-guard` | 권장 | `relay.log` 이벤트를 정해진 형식으로 추가하고 다음 단계 진입 조건을 검사하는 보조 CLI입니다. |
 | `.agent-relay/lesson-learned/` | 누적 관리 | 완료된 작업에서 얻은 재사용 가능한 해결 지식이 쌓이는 디렉토리입니다. |
 | `.agent-relay/runs/` | 목표 필수 | `Standard` 작업의 라운드 산출물이 쌓이는 디렉토리입니다. |
 | `.agent-relay/templates/` | 목표 권장 | 산출물·누적 문서 작성 형식 예시입니다. |
@@ -439,6 +456,7 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `bootstrap/.agent-relay/GUIDANCE.md` | 장기 지침/제약 누적 템플릿 |
 | `bootstrap/.agent-relay/LESSON-LEARNED.md` | 완료 작업에서 얻은 해결 지식 기록 안내 |
 | `bootstrap/.agent-relay/relay.log` | 초기 로그 템플릿 |
+| `bootstrap/.agent-relay/protocol-guard` | `relay.log` 이벤트 추가와 단계 전이 검증 CLI |
 | `bootstrap/.agent-relay/lesson-learned/` | 완료 작업에서 얻은 해결 지식 기록 디렉토리 |
 | `bootstrap/.agent-relay/templates/guidance.md` | `GUIDANCE.md` 누적 지침 형식 |
 | `bootstrap/.agent-relay/templates/lesson-learned.md` | 해결 지식 기록 형식 |

@@ -21,6 +21,11 @@ Accepted Review: <path-to-review>
 
 - <risk or none>
 
+## Relay Log
+
+- Appended event: `pending user approval`
+- Last matching `relay.log` line: `pending user approval`
+
 ## User Approval Required
 
 Leader may append the final `DONE` event only after explicit user approval.

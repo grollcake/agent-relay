@@ -105,11 +105,26 @@ Standard work. Use the matching template in
 `.agent-relay/templates/` for every round artifact.
 
 Artifact creation and `relay.log` event append are separate required actions. A
-stage is complete only after both its artifact is written and its matching event
-is appended. The artifact author appends the matching event: Planner appends
-`PLAN` and `REVIEW`, Runner appends `RUN_ED`, and Leader appends `REQUEST`,
-`FEEDBACK`, `RUN_ST`, `RUN_DONE`, and the final `DONE` after user approval. Leader verifies the
-previous event exists before delegating the next stage.
+stage is complete only after its artifact is written, its matching event is
+appended, and the actor reports the appended event name plus the last matching
+`relay.log` line. The artifact author appends the matching event, preferably
+with `.agent-relay/protocol-guard append ...` instead of direct shell redirection:
+Planner appends `PLAN` and `REVIEW`, Runner appends `RUN_ED`, and Leader
+appends `REQUEST`, `FEEDBACK`, `RUN_ST`, `RUN_DONE`, and the final `DONE` after
+user approval.
+
+Leader must run `.agent-relay/protocol-guard gate ...` or read the last 50
+`relay.log` lines before delegating the next stage. If the required prior event
+is missing, stop delegation and instruct the responsible role to record it.
+
+Required gates:
+
+| Next stage | Required prior event |
+| --- | --- |
+| Delegate Runner + append `RUN_ST` | `PLAN` |
+| Delegate Planner review | `RUN_ED` |
+| Request user approval | `REVIEW` |
+| Append final `DONE` event | explicit user approval |
 
 ## Standard Pipeline
 
@@ -117,11 +132,12 @@ previous event exists before delegating the next stage.
 2. Leader records the current base branch, creates a dedicated task branch, and
    switches to it.
 3. Leader appends `REQUEST` on the task branch.
-4. Planner writes `PLAN`.
-5. Leader appends `RUN_ST` and delegates to Runner.
+4. Planner writes `PLAN` and appends `PLAN`.
+5. Leader verifies `PLAN`, appends `RUN_ST`, and delegates to Runner.
 6. Runner implements, validates, writes `RUN-01`, and appends `RUN_ED`.
-7. Planner reviews and writes `REVIEW-01`.
-8. If there is no `blocker`, Planner writes `DONE`.
+7. Leader verifies `RUN_ED`, then Planner reviews, writes `REVIEW-01`, and
+   appends `REVIEW`.
+8. Leader verifies `REVIEW`. If there is no `blocker`, Planner writes `DONE`.
 9. Leader reports result, validation, actionable nits or risks if present, and
    the `DONE` path to the user.
 10. After explicit user approval, Leader appends the `DONE` event on the task
@@ -163,12 +179,16 @@ Planner and Runner prompts must include:
 
 - goal, scope, success criteria, validation, and exact artifact path;
 - input artifact paths;
+- matching event name to append;
 - prohibition on out-of-scope work;
-- instruction to return ambiguity to the Leader instead of guessing.
+- instruction to return ambiguity to the Leader instead of guessing;
+- instruction to complete all three: write artifact, append event, and report
+  the appended event name plus last matching `relay.log` line.
 
 Reports should include artifact path, outcome, validation status, blockers or
-risks, nits when applicable, and any user decision required. Runner reports
-must also list items returned to Leader as out-of-scope. Leader keeps only artifact
+risks, nits when applicable, appended event name, last matching `relay.log`
+line for the task/event, and any user decision required. Runner reports must
+also list items returned to Leader as out-of-scope. Leader keeps only artifact
 paths and minimum decision data unless ambiguity requires more.
 
 ## User-Facing Reports
