@@ -38,7 +38,7 @@ github.com/grollcake/agent-relay 를 내 프로젝트에 반영해줘
 agent-relay 최신화해줘
 ```
 
-에이전트는 대상 프로젝트의 `.agent-relay/VERSION`을 읽고 기본 upstream `https://github.com/grollcake/agent-relay`와 비교합니다. `AGENTS.md`는 프로젝트 고유 지침을 보존하고 Agent Relay 섹션만 최신 `bootstrap/AGENTS.md`와 비교해 갱신합니다. `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`, `relay.log`, `runs/`는 프로젝트별 상태이므로 덮어쓰지 않습니다.
+에이전트는 대상 프로젝트의 `.agent-relay/VERSION`을 읽고 기본 upstream `https://github.com/grollcake/agent-relay`와 비교합니다. `AGENTS.md`는 프로젝트 고유 지침을 보존하고 Agent Relay 섹션만 최신 `bootstrap/AGENTS.md`와 비교해 갱신합니다. `LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없을 때만 갱신하고, `GUIDANCE.md`, `lesson-learned/`, `relay.log`, `runs/`는 프로젝트별 상태이므로 덮어쓰지 않습니다.
 
 ---
 
@@ -90,13 +90,13 @@ bootstrap/
 
 Planner와 Executor는 **PM을 통해서만** 통신한다.
 
-**강제 선행 규칙:** PM, Planner, Executor는 새로운 요청에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인한다. 이 확인 없이 요청을 분류하거나 계획·구현·검토를 시작하지 않는다.
+**강제 선행 규칙:** PM, Planner, Executor는 기록이 필요한 작업에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인한다. 명백한 기록 제외 요청은 이 확인 없이 응답할 수 있지만, 파일 변경·조사·설계 판단·프로젝트 지침 의존 답변으로 넘어가면 먼저 이 확인을 완료해야 한다.
 
 ---
 
 ## 작업 분류
 
-필수 지침·교훈 확인을 마친 뒤 PM은 모든 요청을 분류한다.
+PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단한다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Trivial` 또는 `Standard`로 분류한다.
 
 | 분류 | 일반적 범위 | 처리 방식 |
 | --- | --- | --- |

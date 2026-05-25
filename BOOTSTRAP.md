@@ -40,21 +40,7 @@
 - **없으면**: `bootstrap/AGENTS.md`를 그대로 `<project>/AGENTS.md`로 복사합니다.
 - **이미 있으면**: 덮어쓰지 말고 **머지**합니다.
   - 기존 내용 전체를 보존합니다.
-  - 기존 파일에는 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션만 추가합니다.
-    ```markdown
-    ## Agent Relay
-
-    This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
-
-    1. When joining or resuming work, read and follow `.agent-relay/PROTOCOL.md`.
-    2. Before starting every new request, read `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`.
-    3. Use the `PM`, `Planner`, and `Executor` roles and keep Planner and Executor communication routed through the PM.
-    4. Keep `.agent-relay/relay.log` append-only and store round artifacts in `.agent-relay/runs/` without overwriting older rounds.
-    5. The PM must not append the final `DONE` event or close the task until the user explicitly approves completion.
-    6. If a Planner or Executor instance has five or more follow-up messages, the task topic changes, or the instance slows down or confuses context, the PM asks the user whether to replace that role instance.
-    7. Update `.agent-relay/GUIDANCE.md` and `.agent-relay/lesson-learned/` only after user approval.
-    8. Never store secrets, credentials, customer data, or sensitive operational information in `.agent-relay/`.
-    ```
+  - 기존 파일에는 `bootstrap/AGENTS.md`의 `## Agent Relay` 섹션만 추가합니다. 이 섹션의 원본은 `bootstrap/AGENTS.md`이며, `BOOTSTRAP.md`에는 전문을 중복 유지하지 않습니다.
   - 동일한 Agent Relay 섹션이나 포인터가 이미 있으면 중복 추가하지 않고 누락된 문장만 보강합니다.
   - 기존 프로젝트의 규칙·역할·지시문을 임의로 삭제하거나 재작성하지 않습니다.
 

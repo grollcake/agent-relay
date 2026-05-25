@@ -17,13 +17,15 @@ Planner and Executor communicate only through the PM.
 
 ## Required Preflight
 
-Before starting every new request, PM, Planner, and Executor must read:
+Before starting recordable work, PM, Planner, and Executor must read:
 
 1. `.agent-relay/GUIDANCE.md`
 2. `.agent-relay/LESSON-LEARNED.md`
 3. existing records under `.agent-relay/lesson-learned/`
 
-No role may classify, plan, implement, or review before this check is complete.
+Clearly excluded requests may be answered without this check. If the request
+requires file changes, investigation, design judgment, or project-specific
+guidance, complete this check before classifying it as `Trivial` or `Standard`.
 
 ## Read Order
 
@@ -38,7 +40,7 @@ When joining, resuming, switching agents, or taking over an open round, read:
 7. latest open-round `PLAN`, `RUN`, and `REVIEW` artifacts, if any
 
 Within one continuous session, do not reread `relay.log` before every message.
-Still rerun the required preflight before each new request.
+Still rerun the required preflight before recordable work.
 
 ## Work Classes
 

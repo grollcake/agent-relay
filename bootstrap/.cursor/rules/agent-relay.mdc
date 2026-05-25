@@ -18,7 +18,7 @@ When joining or resuming work, then read:
 5. the last 50 lines of `.agent-relay/relay.log`
 6. if a round is open, its latest `PLAN`, `RUN`, and `REVIEW` artifacts under `.agent-relay/runs/`
 
-Before every new request, reread `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`.
+Before starting recordable work, reread `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`. Clearly excluded Q&A may be answered without this check.
 
 Do not re-read relay context before every message in the same active session.
 

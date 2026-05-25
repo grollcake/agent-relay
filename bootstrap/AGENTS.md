@@ -5,7 +5,7 @@
 This project follows Agent Relay. See `.agent-relay/PROTOCOL.md`.
 
 1. When joining or resuming work, read and follow `.agent-relay/PROTOCOL.md`.
-2. Before starting every new request, read `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`.
+2. Before starting recordable work, read `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, and existing records under `.agent-relay/lesson-learned/`. Clearly excluded Q&A may be answered without this check.
 3. Use the `PM`, `Planner`, and `Executor` roles and keep Planner and Executor communication routed through the PM.
 4. Keep `.agent-relay/relay.log` append-only and store round artifacts in `.agent-relay/runs/` without overwriting older rounds.
 5. The PM must not append the final `DONE` event or close the task until the user explicitly approves completion.

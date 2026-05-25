@@ -5,9 +5,11 @@ details belong in the repository README and guide.
 
 ## Roles
 
-- `PM`: user communication, classification, scope, delegation, and final report.
+- `PM`: user communication, classification, scope and risk decisions,
+  delegation, result interpretation, and final report. Not a passive relay.
 - `Planner`: writes `PLAN`, reviews `RUN`, and writes `DONE` when accepted.
-- `Executor`: implements `PLAN`, validates work, and writes `RUN`.
+- `Executor`: implements `PLAN`, validates work, and writes `RUN`. Returns
+  ambiguity to the PM without expanding scope.
 
 Planner and Executor communicate only through the PM.
 
@@ -17,13 +19,16 @@ When joining or resuming, read `AGENTS.md`, this file, `GUIDANCE.md`,
 `LESSON-LEARNED.md`, existing `lesson-learned/` records, the last 50 lines of
 `relay.log`, and latest open-round artifacts if any.
 
-Before every new request, PM, Planner, and Executor must reread:
+Before starting recordable work, PM, Planner, and Executor must reread:
 
 1. `.agent-relay/GUIDANCE.md`
 2. `.agent-relay/LESSON-LEARNED.md`
 3. existing records under `.agent-relay/lesson-learned/`
 
-No role may classify, plan, implement, or review before this check is complete.
+Clearly excluded requests may be answered without this check. If the request
+requires file changes, investigation, design judgment, or project-specific
+guidance, complete this check before classifying it as `Trivial` or `Standard`.
+Within one continuous session, do not reread `relay.log` before every message.
 
 ## Work Classes
 
@@ -31,7 +36,9 @@ No role may classify, plan, implement, or review before this check is complete.
 - `Trivial`: minor localized edit. PM records `REQUEST -> RUN_DONE`; no
   completion approval is required.
 - `Standard`: multi-file work, design judgment, or work needing verification.
-  Use Planner -> Executor -> Planner review, preferably in the background.
+  Use Planner -> Executor -> Planner review, preferably in the background. PM
+  stays responsible for user replies during delegation; do not poll or sleep to
+  wait for completion.
 
 ## Event Timeline
 
@@ -42,9 +49,10 @@ No role may classify, plan, implement, or review before this check is complete.
 ```
 
 Use KST `YYYY-MM-DDTHH:MM:SS`, four random lowercase letters for `task-id`, and
-only `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE`. Spaces around
-`role` are for alignment only. Preserve older event lines even if their format
-differs.
+only `REQUEST`, `PLAN`, `RUN`, `REVIEW`, `DONE`, `RUN_DONE`. PM direct flow is
+`REQUEST -> RUN_DONE`; Standard flow is `REQUEST -> PLAN -> RUN -> REVIEW ->
+DONE`. Spaces around `role` are for alignment only. Preserve older event lines
+even if their format differs.
 
 ## Round Artifacts
 
@@ -58,8 +66,9 @@ Store all round artifacts in `.agent-relay/runs/` using one stable
 
 `<NN>` starts at `01`. Never overwrite an older round. Executor never writes
 `DONE`; Planner writes it only when the matching review has no `blocker`.
-PM chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log events;
-`<SLUG>` identifies run artifacts. Use the matching template in
+Each `RUN` records changed files, change summary, validation, and unresolved
+risks. PM chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log
+events; `<SLUG>` identifies run artifacts. Use the matching template in
 `.agent-relay/templates/` for every round artifact.
 
 ## Standard Pipeline
@@ -98,8 +107,9 @@ Planner and Executor prompts must include:
 - instruction to return ambiguity to the PM instead of guessing.
 
 Reports should include artifact path, outcome, validation status, blockers or
-risks, nits when applicable, and any user decision required. PM keeps only
-artifact paths and minimum decision data unless ambiguity requires more.
+risks, nits when applicable, and any user decision required. Executor reports
+must also list items returned to PM as out-of-scope. PM keeps only artifact
+paths and minimum decision data unless ambiguity requires more.
 
 ## Guidance, Lessons, And Security
 

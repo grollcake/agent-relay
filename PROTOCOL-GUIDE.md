@@ -19,11 +19,11 @@ Agent Relay는 **PM / Planner / Executor 에이전트 팀**이 역할을 나누�
 
 Planner와 Executor는 **PM을 통해서만** 통신합니다. 사용 도구의 능력에 따라 배정된 멤버를 병렬 또는 순차로 실행할 수 있지만, 기록 없이 단일 에이전트 작업으로 축소해서는 안 됩니다.
 
-**강제 선행 규칙:** PM, Planner, Executor는 새로운 요청에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인합니다. 이 확인 없이 요청을 분류하거나 계획·구현·검토를 시작하지 않습니다.
+**강제 선행 규칙:** PM, Planner, Executor는 기록이 필요한 작업에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인합니다. 명백한 기록 제외 요청은 이 확인 없이 응답할 수 있지만, 파일 변경·조사·설계 판단·프로젝트 지침 의존 답변으로 넘어가면 먼저 이 확인을 완료해야 합니다.
 
 ## 3. 작업 분류
 
-필수 지침·교훈 확인을 마친 뒤 PM은 모든 요청을 분류합니다.
+PM은 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합니다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Trivial` 또는 `Standard`로 분류합니다.
 
 | 분류 | 일반적 범위 | 처리 방식 |
 | --- | --- | --- |
@@ -214,7 +214,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 7. 진행 중인 라운드가 있으면 .agent-relay/runs/의 최신 PLAN/RUN/REVIEW 읽기
 ```
 
-같은 세션에서 연속 작업 중이라면 매 사용자 메시지마다 `relay.log`를 다시 읽지 않습니다. 다만 새로운 요청에 착수할 때는 PM, Planner, Executor 모두 `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`를 반드시 다시 읽습니다.
+같은 세션에서 연속 작업 중이라면 매 사용자 메시지마다 `relay.log`를 다시 읽지 않습니다. 다만 기록이 필요한 새 요청에 착수할 때는 PM, Planner, Executor 모두 `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`를 반드시 다시 읽습니다.
 
 ## 12. 기록해야 하는 작업
 
@@ -295,10 +295,9 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 7. `bootstrap/.agent-relay/`를 복사합니다. `lesson-learned/`와 `runs/`는 빈 디렉토리(`.gitkeep`)로 생성합니다.
 8. `relay.log`의 자리표시자 timestamp와 이벤트 줄을 현재 작업 정보에 맞게 바꿉니다.
 9. `.agent-relay/VERSION`에 설치 버전을 기록합니다.
-10. `GUIDANCE.md`는 장기 지침과 제약을 누적하는 문서라고 안내합니다.
-11. `LESSON-LEARNED.md`는 완료된 작업에서 얻은 해결 지식 기록 안내 문서라고 안내합니다.
-12. 비밀정보가 `.agent-relay/`에 들어가지 않았는지 확인합니다.
-13. Git 저장소라면 `.agent-relay/`가 커밋 대상인지 확인합니다.
+10. `GUIDANCE.md`와 `LESSON-LEARNED.md`의 용도를 안내합니다.
+11. 비밀정보가 `.agent-relay/`에 들어가지 않았는지 확인합니다.
+12. Git 저장소라면 `.agent-relay/`가 커밋 대상인지 확인합니다.
 
 ## 15. 업데이트 절차
 
@@ -308,8 +307,8 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 2. 기본 upstream `https://github.com/grollcake/agent-relay`의 최신 `main`을 임시 위치에 가져와 현재 프로젝트와 비교합니다.
 3. `AGENTS.md`는 최신 `bootstrap/AGENTS.md`의 `Agent Relay` 섹션과 비교해 현재 파일의 Agent Relay 섹션만 교체하거나 보강합니다.
 4. `.agent-relay/PROTOCOL.md`와 `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
-5. `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
-6. `.agent-relay/LESSON-LEARNED.md`는 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
+5. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
+6. `.agent-relay/LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
 7. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신하고, 업데이트 작업을 `REQUEST → RUN_DONE` 또는 `REQUEST → PLAN → RUN → REVIEW → DONE` 흐름으로 기록합니다.
 
 이전 버전의 `relay.log`가 `agent=`, `task=`, `TASK_BEGIN` 같은 형식을 사용하더라도 기존 줄은 수정하지 않습니다. 새 버전 적용 후 추가하는 이벤트부터 새 형식을 사용합니다.
