@@ -210,15 +210,11 @@ LeadAI asks the user whether to replace a PlanAI or ExecAI instance if:
 
 ## Prompt And Report Contract
 
-PlanAI and ExecAI prompts must include:
-
-- goal, scope, success criteria, validation, and exact artifact path;
-- input artifact paths;
-- matching event name LeadAI must append after artifact completion;
-- prohibition on out-of-scope work;
-- instruction to return ambiguity to LeadAI instead of guessing;
-- instruction to write the artifact and notify LeadAI of completion without
-  writing or claiming to write `relay.log`.
+Delegation prompts pass explicit requirements, source and artifact paths, and
+the event LeadAI will append after completion. PlanAI derives criteria,
+validation, and risks in `PLAN`; ExecAI and review use `PLAN` without LeadAI
+restating it. Delegates do not expand scope, guess through ambiguity, or write
+`relay.log`; they notify LeadAI with completion and a suggested summary.
 
 Reports should include artifact path, outcome, validation status, blockers or
 risks, nits when applicable, requested event name and suggested summary for
