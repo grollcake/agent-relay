@@ -14,10 +14,11 @@ Plan: <path-to-plan>
 
 - `<command or check>`: <result>
 
-## Relay Log
+## LeadAI Log Action
 
-- Appended event: `EXECUTE`
-- Last matching `relay.log` line: `<timestamp> | <task-id> | EXECUTE | ExecAI | <summary> | <path>`
+- Event to append: `EXECUTED`
+- Suggested summary: <summary>
+- Artifact path: <path>
 
 ## Success Criteria Status
 

@@ -7,7 +7,10 @@ Run: <path-to-run>
 
 ## Decision
 
-Result: <accepted | blockers>
+Result: <ready-for-user-decision | blockers>
+
+This review is evidence for the user's decision, not approval. Only the user
+can approve `CLOSE`.
 
 ## Findings
 
@@ -23,11 +26,12 @@ Result: <accepted | blockers>
 
 - <file, command output, or artifact>
 
-## Relay Log
+## LeadAI Log Action
 
-- Appended event: `REVIEW`
-- Last matching `relay.log` line: `<timestamp> | <task-id> | REVIEW | PlanAI | <summary> | <path>`
+- Event to append: `REVIEW`
+- Suggested summary: <summary>
+- Artifact path: <path>
 
 ## Required Next Step
 
-- <write CLOSE | request RUN-<next-NN> | ask LeadAI for decision>
+- <ask LeadAI to request user approval | request RUN-<next-NN> | ask LeadAI for decision>

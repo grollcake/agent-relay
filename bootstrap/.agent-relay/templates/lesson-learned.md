@@ -2,6 +2,14 @@
 
 Date: <YYYY-MM-DD>
 
+## Applies When
+
+- <task scope, environment, tool, or workflow in which this lesson is relevant>
+
+## Trigger / Symptom
+
+- <searchable observation, failure mode, or signal that should lead an agent to this record>
+
 ## Context
 
 - <completed task or situation where this lesson was learned>

@@ -30,4 +30,13 @@ that.
 
 ## Conventions
 
-- <naming, style, testing, branching, or workflow convention>
+- When LeadAI delegates to PlanAI or ExecAI with an agent/subagent tool, run the
+  delegated agent in the background if the tool supports it. In Claude Code,
+  set `run_in_background: true` for every PlanAI/ExecAI delegation, including
+  review delegation and follow-up SendMessage calls, so LeadAI can respond to
+  the user while delegated work continues.
+- Treat `REVIEW` as evidence for the user's decision, never as approval. Only
+  explicit user approval allows LeadAI to write and append `CLOSE`; user
+  `FEEDBACK` after any review is a normal pipeline step.
+- PlanAI and ExecAI notify LeadAI when artifacts are complete and provide a
+  suggested event summary; only LeadAI writes `relay.log`.

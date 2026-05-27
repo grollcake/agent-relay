@@ -2,8 +2,9 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-PlanAI: <planner>
-Accepted Review: <path-to-review>
+LeadAI: <leader>
+Approved By: User
+Reviewed Evidence: <path-to-review>
 
 ## Acceptance
 
@@ -21,11 +22,13 @@ Accepted Review: <path-to-review>
 
 - <risk or none>
 
-## Relay Log
+## LeadAI Log Action
 
-- Appended event: `pending user approval`
-- Last matching `relay.log` line: `pending user approval`
+- Event to append: `CLOSE`
+- Suggested summary: <summary>
+- Artifact path: <path>
 
-## User Approval Required
+## Approval Basis
 
-LeadAI may append the final `CLOSE` event only after explicit user approval.
+LeadAI writes this artifact and appends the final `CLOSE` event only after
+explicit user approval.

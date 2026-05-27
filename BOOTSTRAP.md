@@ -1,4 +1,4 @@
-﻿# Bootstrap
+# Bootstrap
 
 이 문서는 **AI 에이전트가 사용자 프로젝트에 Agent Relay를 적용할 때 따라야 하는 절차**입니다.
 사람이 직접 따라할 수도 있지만, 기본은 에이전트가 이 문서를 읽고 자동 수행합니다.
@@ -67,7 +67,7 @@
 
 복사된 `<project>/.agent-relay/relay.log`에는 부트스트랩 작업을 기록하기 위한 두 줄이 들어 있습니다. 이 두 줄의 placeholder를 실제 값으로 바꿉니다.
 
-1. 현재 KST 시간을 `YYYY-MM-DDTHH:MM:SS` 형식으로 적습니다.
+1. 현재 로컬 시스템 시간을 `YYYY-MM-DDTHH:MM:SS` 형식으로 적습니다.
 2. 무작위 소문자 영문 4글자로 `task-id` 하나를 만듭니다.
 3. `REQUEST` 줄과 `RUN_DONE` 줄에 같은 `task-id`를 넣습니다.
 4. 두 줄의 timestamp를 실제 부트스트랩 시작/완료 시각으로 바꿉니다. 같은 시각을 써도 됩니다.
@@ -81,9 +81,9 @@
 
 ### 6. `GUIDANCE.md`와 `LESSON-LEARNED.md` 안내
 
-`GUIDANCE.md`는 기본 템플릿으로 복사됩니다. 부트스트랩 직후 억지로 채우지 않습니다.
+`GUIDANCE.md`는 기본 운영 관례가 포함된 템플릿으로 복사됩니다. 부트스트랩 직후 프로젝트별 지침을 억지로 추가하지 않습니다.
 
-`LESSON-LEARNED.md`는 완료된 작업에서 얻은 재사용 가능한 해결 지식을 `.agent-relay/lesson-learned/`에 기록하는 기준을 설명합니다. 기록은 작업 완료 승인 이후 사용자가 수락한 항목만 추가합니다.
+`LESSON-LEARNED.md`는 `.agent-relay/lesson-learned/`에 저장된 실제 기록의 검색 인덱스로 복사됩니다. 인덱스는 `Applies When`과 `Trigger / Symptom`으로 단계별 담당 역할이 관련 상세 기록만 선택해 읽도록 합니다. 기록은 작업 완료 승인 이후 사용자가 수락한 항목만 추가하고, 수락된 기록 파일을 이 인덱스에 함께 등록합니다.
 
 ### 7. Git 정책 확인
 
@@ -135,8 +135,8 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 | `.agent-relay/VERSION` | 성공 후 최신 upstream의 `VERSION` 값으로 갱신 |
 | `CLAUDE.md` | 존재하는 경우 최신 `bootstrap/CLAUDE.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체 또는 보강 |
 | `.agent-relay/GUIDANCE.md` | 덮어쓰지 않음 |
-| `.agent-relay/LESSON-LEARNED.md` | 해결 지식 기록 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신 |
-| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `PLAN`, `EXECUTE`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE` 형식을 사용 |
+| `.agent-relay/LESSON-LEARNED.md` | 프로젝트별 기록 인덱스이므로 덮어쓰지 않음 |
+| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `PLANNED`, `EXECUTED`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE` 형식을 사용 |
 | `.agent-relay/runs/` | 덮어쓰지 않음 |
 | `.agent-relay/lesson-learned/` | 덮어쓰지 않음 |
 

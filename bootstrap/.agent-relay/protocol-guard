@@ -9,10 +9,10 @@ Usage:
   .agent-relay/protocol-guard append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]
   .agent-relay/protocol-guard gate <before-execute|before-review|before-approval> --task-id <id>
 
-Events: REQUEST PLAN EXECUTE REVIEW FEEDBACK CLOSE RUN_DONE
+Events: REQUEST PLANNED EXECUTED REVIEW FEEDBACK CLOSE RUN_DONE
 Gates:
-  before-execute   requires PLAN
-  before-review    requires EXECUTE
+  before-execute   requires PLANNED
+  before-review    requires EXECUTED
   before-approval  requires REVIEW
 USAGE
 }
@@ -32,7 +32,7 @@ require_log() {
 
 valid_event() {
   case "$1" in
-    REQUEST|PLAN|EXECUTE|REVIEW|FEEDBACK|CLOSE|RUN_DONE) return 0 ;;
+    REQUEST|PLANNED|EXECUTED|REVIEW|FEEDBACK|CLOSE|RUN_DONE) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -40,8 +40,8 @@ valid_event() {
 expected_role() {
   case "$1" in
     REQUEST|FEEDBACK|CLOSE|RUN_DONE) printf '%s\n' "LeadAI" ;;
-    PLAN|REVIEW) printf '%s\n' "PlanAI" ;;
-    EXECUTE) printf '%s\n' "ExecAI" ;;
+    PLANNED|REVIEW) printf '%s\n' "PlanAI" ;;
+    EXECUTED) printf '%s\n' "ExecAI" ;;
     *) return 1 ;;
   esac
 }
@@ -87,13 +87,13 @@ append_event() {
   [ "$role" = "$expected" ] || die "$event requires --role $expected"
 
   case "$event" in
-    PLAN|EXECUTE|REVIEW|CLOSE)
+    PLANNED|EXECUTED|REVIEW|CLOSE)
       [ -n "$path" ] || die "$event requires --path"
       ;;
   esac
 
   require_log
-  timestamp="$(TZ=Asia/Seoul date '+%Y-%m-%dT%H:%M:%S')"
+  timestamp="$(date '+%Y-%m-%dT%H:%M:%S')"
 
   if [ -n "$path" ]; then
     printf '%s | %-4s | %-8s | %-6s | %s | %s\n' \
@@ -123,8 +123,8 @@ gate_event() {
   [ -n "$task_id" ] || die "missing --task-id"
 
   case "$gate" in
-    before-execute) event="PLAN" ;;
-    before-review) event="EXECUTE" ;;
+    before-execute) event="PLANNED" ;;
+    before-review) event="EXECUTED" ;;
     before-approval) event="REVIEW" ;;
     *) die "unknown gate: $gate" ;;
   esac

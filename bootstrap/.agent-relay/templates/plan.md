@@ -4,6 +4,15 @@ Task ID: <task-id>
 Date: <YYYY-MM-DD>
 PlanAI: <planner>
 
+## LeadAI Brief
+
+- Goal: <one sentence>
+- Scope: <one sentence>
+- Success Criteria: <one or two observable checks>
+- Risks: <blockers, sensitive areas, or none>
+- Required Checks: `<command or check>`
+- ExecAI Prompt: <minimal self-contained instruction LeadAI can pass to ExecAI>
+
 ## Goal
 
 - <what must be true when the task is complete>
@@ -33,10 +42,11 @@ Out of scope:
 
 - `<command or check>`: <expected result>
 
-## Relay Log
+## LeadAI Log Action
 
-- Appended event: `PLAN`
-- Last matching `relay.log` line: `<timestamp> | <task-id> | PLAN | PlanAI | <summary> | <path>`
+- Event to append: `PLANNED`
+- Suggested summary: <summary>
+- Artifact path: <path>
 
 ## Risks Or Questions
 

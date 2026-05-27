@@ -1,22 +1,10 @@
-﻿# Lesson Learned
+# Lesson Learned Index
 
-Use this document to understand what belongs in `.agent-relay/lesson-learned/`.
+This file is the index of accepted records under `.agent-relay/lesson-learned/`.
+At the start of each recordable phase, scan this index and open only records
+whose `Applies When` or `Trigger / Symptom` matches the current scope. Do not
+rely only on selections made by an earlier role.
 
-Lesson records capture reusable knowledge from completed work. Add them only
-after `CLOSE` approval and only when the user accepts the proposed record.
-
-Record:
-
-- a wrong assumption or failed approach and why it failed;
-- the key solution and a reproducible validation method;
-- what future agents should check to avoid the same mistake.
-
-Do not record:
-
-- current task progress;
-- temporary plans or debugging notes;
-- one-off requests;
-- simple status summaries.
-
-Use `.agent-relay/GUIDANCE.md` for durable instructions and constraints. Use
-`relay.log` and `.agent-relay/runs/` for task progress and results.
+| Applies When | Trigger / Symptom | Lesson File | Resolution Summary |
+|---|---|---|---|
+| _No records yet._ |  |  |  |

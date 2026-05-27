@@ -8,8 +8,10 @@ details belong in the repository README and guide.
 - `LeadAI`: user communication, classification, scope and risk decisions,
   delegation, result interpretation, final report, and every `relay.log` append.
   Not a passive relay. LeadAI delegates to PlanAI and ExecAI in the background
-  and remains immediately available for user requests while delegated work runs.
-- `PlanAI`: writes `PLAN`, reviews `RUN`, and writes `CLOSE` artifacts when accepted.
+  and immediately returns control to the user with a short status. LeadAI remains
+  available for new user requests while delegated work runs.
+- `PlanAI`: writes `PLAN` and reviews `RUN`. A `REVIEW` is evidence for the
+  user's decision, not approval; PlanAI never approves completion or writes `CLOSE`.
 - `ExecAI`: implements `PLAN`, validates work, and writes `RUN`. Returns
   ambiguity to LeadAI without expanding scope.
 
@@ -19,26 +21,31 @@ PlanAI and ExecAI communicate only through LeadAI.
 
 When joining or resuming, read the active instruction file (`AGENTS.md`,
 `CLAUDE.md`, or both when present), this file, `GUIDANCE.md`,
-`LESSON-LEARNED.md`, existing `lesson-learned/` records, the last 50 lines of
-`relay.log`, and latest open-round artifacts if any. The
+the `LESSON-LEARNED.md` index, lesson records selected from that index for the
+current resumed scope, the last 50 lines of `relay.log`, and latest open-round
+artifacts if any. The
 `<agent-relay-rules>...</agent-relay-rules>` block in `AGENTS.md` and
 `CLAUDE.md` must remain identical so either file can stand alone.
 
-Before starting recordable work, LeadAI, PlanAI, and ExecAI must reread:
+At the start of each recordable phase, its responsible role must reread:
 
 1. `.agent-relay/GUIDANCE.md`
-2. `.agent-relay/LESSON-LEARNED.md`
-3. existing records under `.agent-relay/lesson-learned/`
+2. the `.agent-relay/LESSON-LEARNED.md` index
+3. only records under `.agent-relay/lesson-learned/` whose `Applies When` or
+   `Trigger / Symptom` matches that phase's current scope
 
 Clearly excluded requests may be answered without this check. If the request
 requires file changes, investigation, design judgment, or project-specific
-guidance, complete this check before classifying it as `Trivial` or `Standard`.
+guidance, LeadAI completes this check before classifying it as `Direct` or
+`Standard`. Before their delegated phases, PlanAI and ExecAI each repeat the
+index selection for their own potentially expanded scope rather than relying
+only on lessons selected by an earlier role.
 Within one continuous session, do not reread `relay.log` before every message.
 
 ## Work Classes
 
 - Excluded from records: simple Q&A, short explanation, or brainstorming.
-- `Trivial`: minor localized edit, Agent Relay bootstrap, or Agent Relay update
+- `Direct`: minor localized edit, Agent Relay bootstrap, or Agent Relay update
   sync. LeadAI records `REQUEST -> RUN_DONE`; no completion approval is required.
   Bootstrap and update are not excluded as meta work.
 - `Standard`: multi-file work, design judgment, or work needing verification.
@@ -48,8 +55,9 @@ Within one continuous session, do not reread `relay.log` before every message.
   approved state and automatically merge it into the recorded base branch. If no
   task branch is used, keep the workflow on the current branch. Use
   PlanAI -> ExecAI -> PlanAI review, preferably in the background. LeadAI stays
-  responsible for user replies during delegation; do not block on polling or
-  sleep while waiting for delegated work.
+  responsible for user replies during delegation. After each delegation, LeadAI
+  must respond to the user instead of waiting for completion; do not block on
+  polling, sleep, or delegated work.
 
 At session start, LeadAI asks whether to use a Git branch strategy for this
 Agent Relay session: always use branches, do not use branches, or ask per task.
@@ -62,13 +70,13 @@ Agent Relay session: always use branches, do not use branches, or ask per task.
 <YYYY-MM-DDTHH:MM:SS> | <task-id> | <event> | <role> | <summary> | <path?>
 ```
 
-Use KST `YYYY-MM-DDTHH:MM:SS`, four random lowercase letters for `task-id`, and
-only `REQUEST`, `PLAN`, `EXECUTE`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE`.
+Use local system time in `YYYY-MM-DDTHH:MM:SS` format, four random lowercase letters for `task-id`, and
+only `REQUEST`, `PLANNED`, `EXECUTED`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE`.
 LeadAI creates one `task-id` at `REQUEST` and reuses it through `CLOSE` for the same
 Standard work, including any `FEEDBACK` before `CLOSE` approval. Use a new
 `task-id` for each new `REQUEST`. LeadAI direct flow is
 `REQUEST -> RUN_DONE`; Standard flow is
-`REQUEST` -> `PLAN` -> `EXECUTE` -> `REVIEW` -> `CLOSE`.
+`REQUEST` -> `PLANNED` -> `EXECUTED` -> `REVIEW` -> `CLOSE`.
 For Standard work with a dedicated task branch, LeadAI switches to that branch
 before appending `REQUEST`; no task event is written to the base branch before
 the approved task branch is merged. If the session branch strategy does not use
@@ -77,7 +85,7 @@ task branches, LeadAI appends `REQUEST` on the current branch.
 approving `CLOSE`. Keep the same `task-id` and artifact key. After `FEEDBACK`,
 LeadAI asks whether to add to the current run or start a new run. For obvious
 defects, add to the current run without asking. **Add to current run**: retry
-`EXECUTE` -> `REVIEW-<NN>` within the last `RUN-<NN>` scope and
+`EXECUTED` -> `REVIEW-<NN>` within the last `RUN-<NN>` scope and
 existing `PLAN`; updating `RUN-<NN>.md` is allowed before `CLOSE` approval.
 **New run**: proceed with `RUN-<NN+1>`. Pad `event` to 8 characters and
 `role` to 6 characters with trailing spaces. Preserve older event lines
@@ -87,17 +95,17 @@ LeadAI appends every `relay.log` event. Use these fixed event and role pairs:
 
 ```text
 REQUEST  | LeadAI
-PLAN     | PlanAI
-EXECUTE  | ExecAI
+PLANNED  | PlanAI
+EXECUTED | ExecAI
 REVIEW   | PlanAI
 FEEDBACK | LeadAI
 CLOSE    | LeadAI
 RUN_DONE | LeadAI
 ```
 
-`EXECUTE` marks run completion. LeadAI appends it with required `path` after
-ExecAI writes `RUN-<NN>.md`. Each round `<NN>` is one `EXECUTE` followed by the
-matching `REVIEW`. On `blocker`, append another `EXECUTE` under the same
+`EXECUTED` marks run completion. LeadAI appends it with required `path` after
+ExecAI writes `RUN-<NN>.md`. Each round `<NN>` is one `EXECUTED` followed by the
+matching `REVIEW`. On `blocker`, append another `EXECUTED` under the same
 `task-id` after ExecAI completes the next run.
 
 ## Round Artifacts
@@ -113,9 +121,9 @@ Store all round artifacts in `.agent-relay/runs/` using one stable
 `<NN>` starts at `01`. Never overwrite an older round, except when adding to
 the current run after `FEEDBACK` before `CLOSE` approval; then updating
 `RUN-<NN>.md` is allowed. ExecAI never writes
-`CLOSE`; PlanAI writes it only when the matching review has no `blocker`.
+`CLOSE`; LeadAI writes it only after explicit user approval.
 Each `RUN` records changed files, change summary, validation, and unresolved
-risks. `<YYYYMMDD>` and `<HHMM>` come from KST date and 24-hour minute at
+risks. `<YYYYMMDD>` and `<HHMM>` come from the local system date and 24-hour minute at
 `REQUEST` (no separators in `<HHMM>`). Example: `20260526-1430-diary-write`.
 LeadAI chooses `<SLUG>` as lowercase kebab-case. `task-id` identifies log
 events for one Standard work; `<YYYYMMDD>-<HHMM>-<SLUG>` identifies run
@@ -124,23 +132,23 @@ Standard work. Use the matching template in
 `.agent-relay/templates/` for every round artifact.
 
 Artifact creation and `relay.log` event append are separate required actions. A
-stage is complete only after its artifact is written, its matching event is
-appended, and the actor reports the appended event name plus the last matching
-`relay.log` line. LeadAI appends the matching event, preferably with
-`.agent-relay/protocol-guard append ...` instead of direct shell redirection.
-PlanAI and ExecAI report artifact completion to LeadAI; LeadAI then appends
-the corresponding event using the fixed role value for that event.
+stage is complete only after its artifact is written and LeadAI appends and
+verifies its matching event. PlanAI and ExecAI notify LeadAI when their
+artifacts are complete and provide a suggested event summary; they never append
+`relay.log` or claim that an event has been appended. LeadAI appends the matching
+event, preferably with `.agent-relay/protocol-guard append ...` instead of direct
+shell redirection, then verifies the appended line before the next delegation.
 
 LeadAI must run `.agent-relay/protocol-guard gate ...` or read the last 50
 `relay.log` lines before delegating the next stage. If the required prior event
-is missing, stop delegation and instruct the responsible role to record it.
+is missing, stop delegation and append or repair the LeadAI-owned log action.
 
 Required gates:
 
 | Next stage | Required prior event |
 | --- | --- |
-| Delegate ExecAI | `PLAN` |
-| Delegate PlanAI review | `EXECUTE` |
+| Delegate ExecAI | `PLANNED` |
+| Delegate PlanAI review | `EXECUTED` |
 | Request user approval | `REVIEW` |
 | Append final `CLOSE` event | explicit user approval |
 
@@ -151,15 +159,18 @@ Required gates:
    branch, record the current base branch, create the task branch, and switch to
    it. Otherwise continue on the current branch.
 3. LeadAI appends `REQUEST`.
-4. PlanAI writes `PLAN`; LeadAI appends `PLAN`.
-5. LeadAI verifies `PLAN` and delegates to ExecAI.
-6. ExecAI implements, validates, and writes `RUN-01`; LeadAI appends `EXECUTE`.
-7. LeadAI verifies `EXECUTE`, then PlanAI reviews and writes `REVIEW-01`;
+4. PlanAI writes `PLAN` with a top `LeadAI Brief`; LeadAI appends `PLANNED`.
+5. LeadAI reads only the `LeadAI Brief` by default, verifies it is complete,
+   and delegates to ExecAI using its `ExecAI Prompt`.
+6. ExecAI implements, validates, and writes `RUN-01`; LeadAI appends `EXECUTED`.
+7. LeadAI verifies `EXECUTED`, then PlanAI reviews and writes `REVIEW-01`;
    LeadAI appends `REVIEW`.
-8. LeadAI verifies `REVIEW`. If there is no `blocker`, PlanAI writes `CLOSE`.
+8. LeadAI verifies `REVIEW`. If there is no `blocker`, the work is ready for a
+   user decision; this is not approval.
 9. LeadAI reports result, validation, actionable nits or risks if present, and
-   the `CLOSE` path to the user.
-10. After explicit user approval, LeadAI appends the `CLOSE` event and commits
+   the `REVIEW` path to the user, then requests approval.
+10. After explicit user approval, LeadAI writes `CLOSE`, appends the `CLOSE`
+    event, and commits
     the approved task state when appropriate. If a dedicated task branch was used,
     automatically merge it into its recorded base branch. If committing or merging
     cannot be completed cleanly, do not force it; report the blocker.
@@ -182,7 +193,11 @@ intermediate `RUN`/`REVIEW` rounds without further user approval until the next
 recorded base branch only when a dedicated task branch was used; no separate
 merge confirmation is requested in that case.
 
-`Trivial` work closes with `RUN_DONE` without completion approval. If it reveals
+`REVIEW` is evidence for the user, not approval. Only the user may approve
+`CLOSE`. `FEEDBACK` after any `REVIEW` round is a normal pipeline step, not an
+exception or reversal of a completed task.
+
+`Direct` work closes with `RUN_DONE` without completion approval. If it reveals
 durable guidance or reusable lessons, still add only user-accepted updates.
 
 ## Context Refresh
@@ -199,28 +214,33 @@ PlanAI and ExecAI prompts must include:
 
 - goal, scope, success criteria, validation, and exact artifact path;
 - input artifact paths;
-- matching event name to append;
+- matching event name LeadAI must append after artifact completion;
 - prohibition on out-of-scope work;
 - instruction to return ambiguity to LeadAI instead of guessing;
-- instruction to complete all three: write artifact, append event, and report
-  the appended event name plus last matching `relay.log` line.
+- instruction to write the artifact and notify LeadAI of completion without
+  writing or claiming to write `relay.log`.
 
 Reports should include artifact path, outcome, validation status, blockers or
-risks, nits when applicable, appended event name, last matching `relay.log`
-line for the task/event, and any user decision required. ExecAI reports must
+risks, nits when applicable, requested event name and suggested summary for
+LeadAI to append, and any user decision required. ExecAI reports must
 also list items returned to LeadAI as out-of-scope. LeadAI keeps only artifact
-paths and minimum decision data unless ambiguity requires more.
+paths and minimum decision data unless ambiguity requires more. PlanAI must put
+a short `LeadAI Brief` at the top of each `PLAN` with goal, scope, success
+criteria, risks, required checks, and a minimal `ExecAI Prompt`. LeadAI reads
+only that brief by default before delegating to ExecAI. LeadAI may read the full
+`PLAN` only when the brief is missing, incomplete, inconsistent, high-risk, or a
+user decision requires detailed inspection.
 
 ## User-Facing Reports
 
-Default to short user-facing reports. For `Trivial` work, report the outcome,
+Default to short user-facing reports. For `Direct` work, report the outcome,
 key changed scope, and validation in one to three sentences. Do not list every
 created or preserved file, narrate protocol steps, or add empty risk and next-step
 sections unless the user asks or action is required.
 
-For `Standard` work, a completion or approval report should expose only the
-outcome, validation status, actionable blockers or risks, and the `CLOSE` path
-when approval is needed. Detailed changes and evidence remain in artifacts unless
+For `Standard` work, an approval request should expose only the outcome,
+validation status, actionable blockers or risks, and the `REVIEW` path.
+Detailed changes and evidence remain in artifacts unless
 the user requests them.
 
 ## Guidance, Lessons, And Security
@@ -229,7 +249,9 @@ the user requests them.
   security rules, and prohibitions only.
 - `lesson-learned/`: reusable mistakes, solutions, and validation knowledge from
   completed work only. Use `templates/lesson-learned.md` and save records as
-  `.agent-relay/lesson-learned/<YYYYMMDD>-<slug>.md`.
+  `.agent-relay/lesson-learned/<YYYYMMDD>-<trigger-or-symptom>.md`. Each record
+  includes `Applies When` and `Trigger / Symptom`. Add each accepted record to
+  `LESSON-LEARNED.md`, which is the searchable index of actual lesson records.
 - Task progress stays in `relay.log` and round artifacts.
 - Guidance and lesson updates require user acceptance.
 - Never store secrets, credentials, customer data, personal information,
