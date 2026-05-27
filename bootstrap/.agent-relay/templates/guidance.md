@@ -40,3 +40,6 @@ that.
   `FEEDBACK` after any review is a normal pipeline step.
 - PlanAI and ExecAI notify LeadAI when artifacts are complete and provide a
   suggested event summary; only LeadAI writes `relay.log`.
+- Keep delegation prompts brief: pass the task, scope boundary, artifact path,
+  and source paths to read; do not paste protocol, guidance, lesson, or product
+  document contents into the prompt.
