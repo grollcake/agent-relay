@@ -1,4 +1,4 @@
-# Bootstrap
+﻿# Bootstrap
 
 이 문서는 **AI 에이전트가 사용자 프로젝트에 Agent Relay를 적용할 때 따라야 하는 절차**입니다.
 사람이 직접 따라할 수도 있지만, 기본은 에이전트가 이 문서를 읽고 자동 수행합니다.
@@ -75,8 +75,8 @@
 예시:
 
 ```text
-2026-04-28T19:45:00 | abcd | REQUEST  | Leader  | Bootstrap Agent Relay
-2026-04-28T19:46:00 | abcd | RUN_DONE | Leader  | Agent Relay initialized
+2026-04-28T19:45:00 | abcd | REQUEST  | LeadAI | Bootstrap Agent Relay
+2026-04-28T19:46:00 | abcd | RUN_DONE | LeadAI | Agent Relay initialized
 ```
 
 ### 6. `GUIDANCE.md`와 `LESSON-LEARNED.md` 안내
@@ -136,7 +136,7 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 | `CLAUDE.md` | 존재하는 경우 최신 `bootstrap/CLAUDE.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체 또는 보강 |
 | `.agent-relay/GUIDANCE.md` | 덮어쓰지 않음 |
 | `.agent-relay/LESSON-LEARNED.md` | 해결 지식 기록 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신 |
-| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE` 형식을 사용 |
+| `.agent-relay/relay.log` | 기존 줄을 수정하지 않음. 이전 버전의 다른 형식도 보존하고, 새 이벤트부터 최신 `REQUEST`, `PLAN`, `EXECUTE`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE` 형식을 사용 |
 | `.agent-relay/runs/` | 덮어쓰지 않음 |
 | `.agent-relay/lesson-learned/` | 덮어쓰지 않음 |
 
@@ -151,13 +151,13 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 
 ### 5. `relay.log` 기록
 
-업데이트 완료 후 Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
+업데이트 완료 후 LeadAI는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
 
 예시:
 
 ```text
-2026-05-26T00:10:00 | kfnp | REQUEST  | Leader  | Update Agent Relay 0.33 -> 0.34
-2026-05-26T00:12:00 | kfnp | RUN_DONE | Leader  | Agent Relay updated to 0.34
+2026-05-26T00:10:00 | kfnp | REQUEST  | LeadAI | Update Agent Relay 0.33 -> 0.34
+2026-05-26T00:12:00 | kfnp | RUN_DONE | LeadAI | Agent Relay updated to 0.34
 ```
 
 ### 6. 완료 보고

@@ -1,8 +1,8 @@
-# DONE: <task-title>
+# CLOSE: <task-title>
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-Planner: <planner>
+PlanAI: <planner>
 Accepted Review: <path-to-review>
 
 ## Acceptance
@@ -28,4 +28,4 @@ Accepted Review: <path-to-review>
 
 ## User Approval Required
 
-Leader may append the final `DONE` event only after explicit user approval.
+LeadAI may append the final `CLOSE` event only after explicit user approval.

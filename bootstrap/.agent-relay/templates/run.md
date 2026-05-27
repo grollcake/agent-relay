@@ -2,7 +2,7 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-Runner: <runner>
+ExecAI: <executor>
 Plan: <path-to-plan>
 
 ## Changes
@@ -16,8 +16,8 @@ Plan: <path-to-plan>
 
 ## Relay Log
 
-- Appended event: `RUN_ED`
-- Last matching `relay.log` line: `<timestamp> | <task-id> | RUN_ED | Runner | <summary> | <path>`
+- Appended event: `EXECUTE`
+- Last matching `relay.log` line: `<timestamp> | <task-id> | EXECUTE | ExecAI | <summary> | <path>`
 
 ## Success Criteria Status
 
@@ -27,6 +27,6 @@ Plan: <path-to-plan>
 
 - <risk or none>
 
-## Out Of Scope Returned To Leader
+## Out Of Scope Returned To LeadAI
 
 - <item or none>

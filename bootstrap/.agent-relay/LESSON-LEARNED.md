@@ -1,9 +1,9 @@
-# Lesson Learned
+﻿# Lesson Learned
 
 Use this document to understand what belongs in `.agent-relay/lesson-learned/`.
 
 Lesson records capture reusable knowledge from completed work. Add them only
-after `DONE` approval and only when the user accepts the proposed record.
+after `CLOSE` approval and only when the user accepts the proposed record.
 
 Record:
 

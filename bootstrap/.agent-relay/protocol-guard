@@ -7,12 +7,12 @@ usage() {
   cat <<'USAGE'
 Usage:
   .agent-relay/protocol-guard append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]
-  .agent-relay/protocol-guard gate <before-run|before-review|before-approval> --task-id <id>
+  .agent-relay/protocol-guard gate <before-execute|before-review|before-approval> --task-id <id>
 
-Events: REQUEST FEEDBACK PLAN RUN_ST RUN_ED REVIEW DONE RUN_DONE
+Events: REQUEST PLAN EXECUTE REVIEW FEEDBACK CLOSE RUN_DONE
 Gates:
-  before-run       requires PLAN
-  before-review    requires RUN_ED
+  before-execute   requires PLAN
+  before-review    requires EXECUTE
   before-approval  requires REVIEW
 USAGE
 }
@@ -32,7 +32,16 @@ require_log() {
 
 valid_event() {
   case "$1" in
-    REQUEST|FEEDBACK|PLAN|RUN_ST|RUN_ED|REVIEW|DONE|RUN_DONE) return 0 ;;
+    REQUEST|PLAN|EXECUTE|REVIEW|FEEDBACK|CLOSE|RUN_DONE) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+expected_role() {
+  case "$1" in
+    REQUEST|FEEDBACK|CLOSE|RUN_DONE) printf '%s\n' "LeadAI" ;;
+    PLAN|REVIEW) printf '%s\n' "PlanAI" ;;
+    EXECUTE) printf '%s\n' "ExecAI" ;;
     *) return 1 ;;
   esac
 }
@@ -74,9 +83,11 @@ append_event() {
   [ -n "$task_id" ] || die "missing --task-id"
   [ -n "$role" ] || die "missing --role"
   [ -n "$summary" ] || die "missing --summary"
+  expected="$(expected_role "$event")"
+  [ "$role" = "$expected" ] || die "$event requires --role $expected"
 
   case "$event" in
-    PLAN|RUN_ED|REVIEW|DONE)
+    PLAN|EXECUTE|REVIEW|CLOSE)
       [ -n "$path" ] || die "$event requires --path"
       ;;
   esac
@@ -85,10 +96,10 @@ append_event() {
   timestamp="$(TZ=Asia/Seoul date '+%Y-%m-%dT%H:%M:%S')"
 
   if [ -n "$path" ]; then
-    printf '%s | %-4s | %-8s | %-7s | %s | %s\n' \
+    printf '%s | %-4s | %-8s | %-6s | %s | %s\n' \
       "$timestamp" "$task_id" "$event" "$role" "$summary" "$path" >> "$LOG_FILE"
   else
-    printf '%s | %-4s | %-8s | %-7s | %s\n' \
+    printf '%s | %-4s | %-8s | %-6s | %s\n' \
       "$timestamp" "$task_id" "$event" "$role" "$summary" >> "$LOG_FILE"
   fi
 
@@ -112,8 +123,8 @@ gate_event() {
   [ -n "$task_id" ] || die "missing --task-id"
 
   case "$gate" in
-    before-run) event="PLAN" ;;
-    before-review) event="RUN_ED" ;;
+    before-execute) event="PLAN" ;;
+    before-review) event="EXECUTE" ;;
     before-approval) event="REVIEW" ;;
     *) die "unknown gate: $gate" ;;
   esac

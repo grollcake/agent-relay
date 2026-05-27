@@ -2,7 +2,7 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-Planner: <planner>
+PlanAI: <planner>
 Run: <path-to-run>
 
 ## Decision
@@ -26,8 +26,8 @@ Result: <accepted | blockers>
 ## Relay Log
 
 - Appended event: `REVIEW`
-- Last matching `relay.log` line: `<timestamp> | <task-id> | REVIEW | Planner | <summary> | <path>`
+- Last matching `relay.log` line: `<timestamp> | <task-id> | REVIEW | PlanAI | <summary> | <path>`
 
 ## Required Next Step
 
-- <write DONE | request RUN-<next-NN> | ask Leader for decision>
+- <write CLOSE | request RUN-<next-NN> | ask LeadAI for decision>

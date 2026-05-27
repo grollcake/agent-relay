@@ -1,39 +1,41 @@
-# Agent Relay 한국어 가이드
+﻿# Agent Relay 한국어 가이드
 
 이 문서는 Agent Relay를 프로젝트에 도입하거나 운영할 때 읽는 한국어 해설서입니다.
 정식 배포 파일은 `bootstrap/` 아래에 있으며, 이 문서는 그 파일들의 의도와 사용 방법을 설명합니다.
 
 ## 1. Agent Relay란
 
-Agent Relay는 **Leader / Planner / Runner 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다. 프로젝트 안에 작업 분류, 이벤트 타임라인, 라운드 산출물, 작업 맥락 전달 표준을 남기는 것입니다.
+Agent Relay는 **LeadAI / PlanAI / ExecAI 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다. 프로젝트 안에 작업 분류, 이벤트 타임라인, 라운드 산출물, 작업 맥락 전달 표준을 남기는 것입니다.
 
 ## 2. 에이전트 팀 구성
 
-저장소 수준 지시가 다른 절차를 지정하지 않는 한, 표준 구현 작업에는 먼저 **Leader / Planner / Runner 에이전트 팀**을 구성하고 Leader / Planner / Runner 프로토콜을 적용합니다. **Leader (허브)**는 사용자 소통, 분류, 범위/위험 결정, 위임, 결과 해석, 최종 보고를 담당합니다. Planner와 Runner는 Leader를 통해서만 통신합니다.
+저장소 수준 지시가 다른 절차를 지정하지 않는 한, 표준 구현 작업에는 먼저 **LeadAI / PlanAI / ExecAI 에이전트 팀**을 구성하고 LeadAI / PlanAI / ExecAI 프로토콜을 적용합니다. **LeadAI (허브)**는 사용자 소통, 분류, 범위/위험 결정, 위임, 결과 해석, 최종 보고를 담당합니다. LeadAI는 PlanAI/ExecAI에게 백그라운드로 작업을 위임하고, 위임 중에도 사용자 요구에 즉시 대응 가능한 상태를 유지합니다. PlanAI와 ExecAI는 LeadAI를 통해서만 통신합니다.
 
 | 역할 | 책임 |
 | --- | --- |
-| **Leader (허브)** | 작업을 라우팅하고 증거가 요청을 충족하는지 판단합니다. 단순 중계자가 아닙니다. |
-| **Planner** | `PLAN`을 작성하고, 구현이 계획과 일치하는지 검토합니다. 발견은 `blocker`(반드시 수정) 또는 `nit`(비차단)으로 표시합니다. |
-| **Runner** | `PLAN`을 구현하고 검증합니다. 모호함은 범위를 넓히지 않은 채 Leader에게 되돌립니다. |
+| **LeadAI (허브)** | 작업을 라우팅하고 증거가 요청을 충족하는지 판단합니다. 단순 중계자가 아닙니다. |
+| **PlanAI** | `PLAN`을 작성하고, 구현이 계획과 일치하는지 검토합니다. 발견은 `blocker`(반드시 수정) 또는 `nit`(비차단)으로 표시합니다. |
+| **ExecAI** | `PLAN`을 구현하고 검증합니다. 모호함은 범위를 넓히지 않은 채 LeadAI에게 되돌립니다. |
 
-Planner와 Runner는 **Leader를 통해서만** 통신합니다. 사용 도구의 능력에 따라 배정된 멤버를 병렬 또는 순차로 실행할 수 있지만, 기록 없이 단일 에이전트 작업으로 축소해서는 안 됩니다.
+PlanAI와 ExecAI는 **LeadAI를 통해서만** 통신합니다. 사용 도구의 능력에 따라 배정된 멤버를 병렬 또는 순차로 실행할 수 있지만, 기록 없이 단일 에이전트 작업으로 축소해서는 안 됩니다.
 
-**강제 선행 규칙:** Leader, Planner, Runner는 기록이 필요한 작업에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인합니다. 명백한 기록 제외 요청은 이 확인 없이 응답할 수 있지만, 파일 변경·조사·설계 판단·프로젝트 지침 의존 답변으로 넘어가면 먼저 이 확인을 완료해야 합니다.
+**강제 선행 규칙:** LeadAI, PlanAI, ExecAI는 기록이 필요한 작업에 착수하기 전에 반드시 `.agent-relay/GUIDANCE.md`, `.agent-relay/LESSON-LEARNED.md`, `.agent-relay/lesson-learned/`를 읽어 현재 적용할 지침과 이전 해결 지식을 확인합니다. 명백한 기록 제외 요청은 이 확인 없이 응답할 수 있지만, 파일 변경·조사·설계 판단·프로젝트 지침 의존 답변으로 넘어가면 먼저 이 확인을 완료해야 합니다.
 
 ## 3. 작업 분류
 
-Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합니다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Trivial` 또는 `Standard`로 분류합니다. Agent Relay **부트스트랩**과 **업데이트**(`.agent-relay/`·Agent Relay 지시 파일 동기화)는 기록 제외가 아니며, Leader가 직접 수행하면 `Trivial`로 `REQUEST → RUN_DONE`을 기록합니다.
+세션 시작 시 LeadAI는 이번 Agent Relay 세션에서 Git 브랜치 전략을 사용할지 묻습니다: 항상 브랜치 사용, 브랜치 사용 안 함, 작업마다 확인.
+
+LeadAI는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합니다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Trivial` 또는 `Standard`로 분류합니다. Agent Relay **부트스트랩**과 **업데이트**(`.agent-relay/`·Agent Relay 지시 파일 동기화)는 기록 제외가 아니며, LeadAI가 직접 수행하면 `Trivial`로 `REQUEST → RUN_DONE`을 기록합니다.
 
 | 분류 | 일반적 범위 | 처리 방식 |
 | --- | --- | --- |
 | 기록 제외 | 단순 질문 답변, 짧은 설명, 브레인스토밍 | 응답만 하고 이벤트를 남기지 않음 |
-| `Trivial` | 사소한 텍스트/설정 변경, 명백한 국소 편집, Agent Relay 부트스트랩·업데이트 | Leader가 직접 처리하고 `REQUEST → RUN_DONE` 기록 |
-| `Standard` | 다중 파일 구현, 설계 판단, 구현 검증이 필요한 작업 | 작업 브랜치 생성 → Planner → Runner → Planner 검토 → 승인 후 자동 병합 |
+| `Trivial` | 사소한 텍스트/설정 변경, 명백한 국소 편집, Agent Relay 부트스트랩·업데이트 | LeadAI가 직접 처리하고 `REQUEST → RUN_DONE` 기록 |
+| `Standard` | 다중 파일 구현, 설계 판단, 구현 검증이 필요한 작업 | 세션 브랜치 전략 적용 → PlanAI → ExecAI → PlanAI 검토 → 승인 후 필요 시 자동 병합 |
 
 ## 4. 백그라운드 위임
 
-`Standard` 작업은 분류 직후 현재 브랜치를 기준 브랜치로 기억하고 전용 작업 브랜치를 만든 뒤, 그 브랜치에서 `REQUEST`부터 기록합니다. 구현, 검토, 산출물, 로그는 사용자 승인까지 작업 브랜치에만 남기고, 승인 후 `DONE`을 기록해 승인 상태를 커밋한 다음 기준 브랜치로 자동 병합합니다. 위임은 가능한 한 백그라운드로 수행하며 Leader는 위임 후에도 사용자 응답을 계속 담당합니다.
+`Standard` 작업은 분류 직후 세션 시작 때 정한 Git 브랜치 전략을 따릅니다. 전용 작업 브랜치를 쓰는 경우 현재 브랜치를 기준 브랜치로 기억하고 작업 브랜치를 만든 뒤, 그 브랜치에서 `REQUEST`부터 기록합니다. 브랜치를 쓰지 않는 전략이면 현재 브랜치에서 기록과 변경을 진행합니다. 전용 작업 브랜치를 쓴 경우 승인 후 `CLOSE`을 기록해 승인 상태를 커밋한 다음 기준 브랜치로 자동 병합합니다. 위임은 가능한 한 백그라운드로 수행하며 LeadAI는 위임 후에도 사용자 응답을 계속 담당합니다.
 
 ## 5. 이벤트 타임라인
 
@@ -45,59 +47,54 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 
 - `timestamp`는 KST 기준 `YYYY-MM-DDTHH:MM:SS` 형식으로 기록합니다.
 - `task-id`는 무작위 소문자 영문 4글자를 씁니다.
-- Leader는 `REQUEST` 기록 시 `task-id` 하나를 정하고, 같은 Standard 작업의 `PLAN`/`RUN_ST`/`RUN_ED`/`REVIEW`/`FEEDBACK`/`DONE`까지 재사용합니다. 새 `REQUEST`마다 새 `task-id`를 씁니다.
-- 이벤트는 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE`만 씁니다.
-- Leader 직접 처리 흐름은 `REQUEST → RUN_DONE`입니다.
-- 표준 처리 흐름은 `REQUEST` → `PLAN` → `RUN_ST` → `RUN_ED` → `REVIEW` → `DONE`입니다.
-- `Standard`의 `REQUEST`는 작업 브랜치로 전환한 뒤 기록합니다. 승인 전에는 기준 브랜치에 해당 작업의 이벤트나 변경을 기록하지 않습니다.
-- `FEEDBACK`은 사용자가 `DONE` 승인 전 피드백·결함을 알려줄 때 Leader가 기록합니다. 같은 `task-id`와 산출물 파일 키를 유지합니다.
-- `FEEDBACK` 후 Leader는 **현재 런에 추가**할지 **새로운 런**으로 돌릴지 사용자에게 묻습니다. 명백한 결함이면 사용자 확인 없이 현재 런에 추가합니다.
-- **현재 런에 추가**: 마지막 `RUN-<NN>` 범위와 기존 `PLAN` 안에서 `RUN_ST` → `RUN_ED` → `REVIEW-<NN>`을 다시 진행합니다. `DONE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용합니다.
-- **새로운 런**: 다음 `RUN-<NN+1>`로 `RUN_ST` → `RUN_ED` → `REVIEW-<NN+1>`을 진행합니다.
+- LeadAI는 `REQUEST` 기록 시 `task-id` 하나를 정하고, 같은 Standard 작업의 `PLAN`/`EXECUTE`/`REVIEW`/`FEEDBACK`/`CLOSE`까지 재사용합니다. 새 `REQUEST`마다 새 `task-id`를 씁니다.
+- 이벤트는 `REQUEST`, `PLAN`, `EXECUTE`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE`만 씁니다.
+- LeadAI 직접 처리 흐름은 `REQUEST → RUN_DONE`입니다.
+- 표준 처리 흐름은 `REQUEST` → `PLAN` → `EXECUTE` → `REVIEW` → `CLOSE`입니다.
+- `Standard`의 `REQUEST`는 세션 브랜치 전략을 적용한 뒤 기록합니다. 전용 작업 브랜치를 쓰는 경우 승인 전에는 기준 브랜치에 해당 작업의 이벤트나 변경을 기록하지 않습니다.
+- `FEEDBACK`은 사용자가 `CLOSE` 승인 전 피드백·결함을 알려줄 때 LeadAI가 기록합니다. 같은 `task-id`와 산출물 파일 키를 유지합니다.
+- `FEEDBACK` 후 LeadAI는 **현재 런에 추가**할지 **새로운 런**으로 돌릴지 사용자에게 묻습니다. 명백한 결함이면 사용자 확인 없이 현재 런에 추가합니다.
+- **현재 런에 추가**: 마지막 `RUN-<NN>` 범위와 기존 `PLAN` 안에서 `EXECUTE` → `REVIEW-<NN>`을 다시 진행합니다. `CLOSE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용합니다.
+- **새로운 런**: 다음 `RUN-<NN+1>`로 `EXECUTE` → `REVIEW-<NN+1>`을 진행합니다.
 - `role` 주변 공백은 정렬용이며 의미가 없습니다.
-- `event`와 `role`은 각각 8자 폭으로 왼쪽 정렬하고 부족한 자리는 공백으로 채웁니다.
-- `RUN_ST`는 Leader가 Runner 위임 시 기록합니다. `path` 없음. `summary`에 `RUN-<NN>` 번호를 포함합니다.
-- `RUN_ED`는 Runner가 `RUN-<NN>.md` 작성 후 기록합니다. `path` 필수.
-- 한 라운드 `<NN>`은 `RUN_ST` → `RUN_ED` 한 쌍입니다. `RUN_ST`는 `path`가 없으므로 바로 다음 `RUN_ED`와 짝입니다. `blocker`로 다음 라운드를 돌릴 때 같은 `task-id`에 `RUN_ST`/`RUN_ED`를 다시 추가합니다.
+- `event`는 8자 폭, `role`은 6자 폭으로 왼쪽 정렬하고 부족한 자리는 공백으로 채웁니다.
+- `EXECUTE`는 ExecAI가 `RUN-<NN>.md`를 작성한 뒤 LeadAI가 기록합니다. `path` 필수입니다.
+- 한 라운드 `<NN>`은 하나의 `EXECUTE`와 그에 대응하는 `REVIEW`로 식별합니다. `blocker`로 다음 라운드를 돌릴 때 같은 `task-id`에 새 `EXECUTE`/`REVIEW`를 추가합니다.
 - 긴 설명은 `relay.log`에 직접 넣지 말고 `.agent-relay/runs/`의 라운드 산출물로 분리합니다.
 
 예시:
 
 ```text
-2026-05-25T20:40:00 | qmxz | REQUEST  | Leader  | Fix typo in README
-2026-05-25T20:41:00 | qmxz | RUN_DONE | Leader  | Fixed typo directly
-2026-05-25T20:50:00 | abcd | REQUEST  | Leader  | Update protocol docs
-2026-05-25T20:55:00 | abcd | PLAN     | Planner  | Plan written | .agent-relay/runs/20260525-2055-docs-PLAN.md
-2026-05-25T20:56:00 | abcd | RUN_ST   | Leader  | RUN-01 delegated
-2026-05-25T21:10:00 | abcd | RUN_ED   | Runner  | Changes submitted | .agent-relay/runs/20260525-2055-docs-RUN-01.md
-2026-05-25T21:15:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-01.md
-2026-05-25T21:16:00 | abcd | DONE     | Leader  | Completed
+2026-05-25T20:40:00 | qmxz | REQUEST  | LeadAI | Fix typo in README
+2026-05-25T20:41:00 | qmxz | RUN_DONE | LeadAI | Fixed typo directly
+2026-05-25T20:50:00 | abcd | REQUEST  | LeadAI | Update protocol docs
+2026-05-25T20:55:00 | abcd | PLAN     | PlanAI | Plan written | .agent-relay/runs/20260525-2055-docs-PLAN.md
+2026-05-25T21:10:00 | abcd | EXECUTE  | ExecAI | Changes submitted | .agent-relay/runs/20260525-2055-docs-RUN-01.md
+2026-05-25T21:15:00 | abcd | REVIEW   | PlanAI | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-01.md
+2026-05-25T21:16:00 | abcd | CLOSE    | LeadAI | Completed
 ```
 
-사용자가 `DONE` 승인 전 결함을 알려준 경우 — 명백한 결함, 현재 런에 추가(같은 `task-id`):
+사용자가 `CLOSE` 승인 전 결함을 알려준 경우 — 명백한 결함, 현재 런에 추가(같은 `task-id`):
 
 ```text
-2026-05-26T10:20:00 | abcd | FEEDBACK | Leader  | User reported missing validation
-2026-05-26T10:21:00 | abcd | RUN_ST   | Leader  | RUN-01 retry
-2026-05-26T10:35:00 | abcd | RUN_ED   | Runner  | Fix submitted | .agent-relay/runs/20260525-2055-docs-RUN-01.md
-2026-05-26T10:40:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-01.md
+2026-05-26T10:20:00 | abcd | FEEDBACK | LeadAI | User reported missing validation
+2026-05-26T10:35:00 | abcd | EXECUTE  | ExecAI | Fix submitted | .agent-relay/runs/20260525-2055-docs-RUN-01.md
+2026-05-26T10:40:00 | abcd | REVIEW   | PlanAI | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-01.md
 ```
 
 피드백 후 새로운 런을 선택한 경우:
 
 ```text
-2026-05-26T11:00:00 | abcd | FEEDBACK | Leader  | User requested scope change
-2026-05-26T11:05:00 | abcd | RUN_ST   | Leader  | RUN-02 delegated
-2026-05-26T11:20:00 | abcd | RUN_ED   | Runner  | Changes submitted | .agent-relay/runs/20260525-2055-docs-RUN-02.md
-2026-05-26T11:25:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-02.md
+2026-05-26T11:00:00 | abcd | FEEDBACK | LeadAI | User requested scope change
+2026-05-26T11:20:00 | abcd | EXECUTE  | ExecAI | Changes submitted | .agent-relay/runs/20260525-2055-docs-RUN-02.md
+2026-05-26T11:25:00 | abcd | REVIEW   | PlanAI | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-02.md
 ```
 
 `blocker`로 RUN-02가 필요한 경우(같은 `task-id`):
 
 ```text
-2026-05-25T21:20:00 | abcd | RUN_ST   | Leader  | RUN-02 delegated
-2026-05-25T21:35:00 | abcd | RUN_ED   | Runner  | Changes submitted | .agent-relay/runs/20260525-2055-docs-RUN-02.md
-2026-05-25T21:40:00 | abcd | REVIEW   | Planner  | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-02.md
+2026-05-25T21:35:00 | abcd | EXECUTE  | ExecAI | Changes submitted | .agent-relay/runs/20260525-2055-docs-RUN-02.md
+2026-05-25T21:40:00 | abcd | REVIEW   | PlanAI | Accepted | .agent-relay/runs/20260525-2055-docs-REVIEW-02.md
 ```
 
 ## 6. 산출물
@@ -106,73 +103,73 @@ Leader는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단
 
 | 산출물 | 경로 | 작성자 | 의미 |
 | --- | --- | --- | --- |
-| Plan | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-PLAN.md` | Planner | 계획과 성공 기준 |
-| Submission | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-RUN-<NN>.md` | Runner | 라운드 `<NN>`의 변경/검증/리스크 |
-| Review | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-REVIEW-<NN>.md` | Planner | 같은 라운드 발견 |
-| Acceptance | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-DONE.md` | Planner | `blocker` 없이 검토를 통과한 수락 결과 |
+| Plan | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-PLAN.md` | PlanAI | 계획과 성공 기준 |
+| Submission | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-RUN-<NN>.md` | ExecAI | 라운드 `<NN>`의 변경/검증/리스크 |
+| Review | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-REVIEW-<NN>.md` | PlanAI | 같은 라운드 발견 |
+| Acceptance | `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-CLOSE.md` | PlanAI | `blocker` 없이 검토를 통과한 수락 결과 |
 
 - `<NN>`은 `01`부터 시작합니다.
-- 이전 라운드를 덮어쓰지 않습니다. 예외: `FEEDBACK` 후 현재 런에 추가할 때, `DONE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용합니다.
-- `<SLUG>`는 Leader가 정한 소문자 kebab-case 작업 키를 씁니다.
-- `<YYYYMMDD>`와 `<HHMM>`은 Leader가 `REQUEST`를 기록할 때의 KST 날짜·시분(24시간, 구분자 없음)을 씁니다. 예: `20260526-1430-diary-write`.
+- 이전 라운드를 덮어쓰지 않습니다. 예외: `FEEDBACK` 후 현재 런에 추가할 때, `CLOSE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용합니다.
+- `<SLUG>`는 LeadAI가 정한 소문자 kebab-case 작업 키를 씁니다.
+- `<YYYYMMDD>`와 `<HHMM>`은 LeadAI가 `REQUEST`를 기록할 때의 KST 날짜·시분(24시간, 구분자 없음)을 씁니다. 예: `20260526-1430-diary-write`.
 - `task-id`는 `relay.log` 이벤트 식별자이고, `<YYYYMMDD>-<HHMM>-<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키입니다. 같은 Standard 작업에서는 `task-id` 하나와 파일 키 하나를 함께 씁니다.
 - 같은 작업의 모든 라운드 산출물은 같은 `<YYYYMMDD>-<HHMM>-<SLUG>` 키를 씁니다.
-- 산출물은 `.agent-relay/templates/plan.md`, `run.md`, `review.md`, `done.md` 형식을 따릅니다.
-- Runner는 절대 `DONE`을 쓰지 않습니다.
-- Planner는 검토에 `blocker`가 없을 때 `DONE` 산출물을 작성합니다. `nit`는 `DONE`에 기록할 수 있습니다.
-- **사용자가 명시적으로 승인하기 전에는 Leader가 `DONE` 이벤트를 기록하여 작업을 종료할 수 없습니다.**
+- 산출물은 `.agent-relay/templates/plan.md`, `run.md`, `review.md`, `close.md` 형식을 따릅니다.
+- ExecAI는 절대 `CLOSE`을 쓰지 않습니다.
+- PlanAI는 검토에 `blocker`가 없을 때 `CLOSE` 산출물을 작성합니다. `nit`는 `CLOSE`에 기록할 수 있습니다.
+- **사용자가 명시적으로 승인하기 전에는 LeadAI가 `CLOSE` 이벤트를 기록하여 작업을 종료할 수 없습니다.**
 - 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록합니다.
-- `relay.log`는 `REQUEST`, `FEEDBACK`, `PLAN`, `RUN_ST`, `RUN_ED`, `REVIEW`, `DONE`, `RUN_DONE` 이벤트를 추가-전용으로 남기고 `path`로 산출물을 가리킵니다.
+- `relay.log`는 `REQUEST`, `PLAN`, `EXECUTE`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE` 이벤트를 추가-전용으로 남기고 `path`로 산출물을 가리킵니다.
 - 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업입니다. 각 단계는 산출물 작성, 해당 이벤트 추가, 추가한 이벤트명과 `relay.log` 마지막 일치 줄 보고가 모두 끝나야 완료된 것으로 봅니다.
-- 산출물 작성자가 해당 이벤트를 추가합니다. 가능하면 직접 `echo >> relay.log` 대신 `.agent-relay/protocol-guard append ...`를 사용합니다. Planner는 `PLAN`/`REVIEW`, Runner는 `RUN_ED`, Leader는 `REQUEST`/`FEEDBACK`/`RUN_ST`/`RUN_DONE`과 사용자 승인 후 최종 `DONE`을 기록합니다.
-- Leader는 다음 단계 위임 전에 `.agent-relay/protocol-guard gate ...` 또는 `tail -50 .agent-relay/relay.log`로 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인합니다. 확인하지 못하면 다음 단계 위임을 중단하고 해당 역할에 이벤트 기록을 재작업시킵니다.
+- 모든 `relay.log` 이벤트는 LeadAI가 추가합니다. 가능하면 직접 `echo >> relay.log` 대신 `.agent-relay/protocol-guard append ...`를 사용합니다.
+- LeadAI는 다음 단계 위임 전에 `.agent-relay/protocol-guard gate ...` 또는 `tail -50 .agent-relay/relay.log`로 직전 단계 이벤트가 `relay.log`에 추가됐는지 확인합니다. 확인하지 못하면 다음 단계 위임을 중단하고 해당 역할에 이벤트 기록을 재작업시킵니다.
 
 필수 게이트:
 
 | 다음 단계 | 확인할 직전 이벤트 |
 | --- | --- |
-| Runner 위임 + `RUN_ST` | `PLAN` |
-| Planner 검토 위임 | `RUN_ED` |
+| ExecAI 위임 | `PLAN` |
+| PlanAI 검토 위임 | `EXECUTE` |
 | 사용자 승인 요청 | `REVIEW` |
-| 최종 `DONE` 이벤트 | 명시적 사용자 승인 |
+| 최종 `CLOSE` 이벤트 | 명시적 사용자 승인 |
 
 ## 7. 파이프라인
 
-1. Leader가 요청을 분류합니다.
+1. LeadAI가 요청을 분류합니다.
 2. 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
-3. `Trivial`이면 Leader가 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫습니다.
-4. `Standard`이면 Leader가 기준 브랜치를 기억하고 전용 작업 브랜치를 생성·전환한 뒤 `REQUEST`를 기록합니다.
-5. Planner가 `PLAN`을 작성합니다.
-6. Leader가 `PLAN` 이벤트를 확인한 뒤 Runner에게 위임하고 `RUN_ST`를 기록합니다.
-7. Runner는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고 `RUN_ED`를 기록합니다.
-8. Leader가 `RUN_ED` 이벤트를 확인한 뒤 Planner에게 검토를 위임하고, Planner는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
-9. Leader가 `REVIEW` 이벤트를 확인합니다. `blocker`가 없으면 Planner가 `DONE` 산출물을 씁니다. Leader는 결과·검증, 존재하는 조치 대상 nit·리스크, `DONE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
-10. 사용자가 명시적으로 승인한 뒤에만 Leader가 작업 브랜치에 `DONE` 이벤트를 기록하고 승인된 상태를 커밋한 다음 기준 브랜치로 자동 병합합니다. 커밋 또는 병합에 문제가 있으면 강제하지 않고 blocker로 보고합니다.
-11. 사용자가 승인 대신 피드백·결함을 알려주면 Leader가 작업 브랜치에 `FEEDBACK`을 기록합니다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받습니다. 이후 6번(`RUN_ST`)부터 다시 진행합니다.
-12. `DONE` 승인을 받은 Leader는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
-13. `blocker`가 있으면 Leader가 `RUN_ST`로 다음 라운드를 위임하고, Runner가 `RUN-<NN>` → `RUN_ED`를, Planner가 다음 `REVIEW`를 씁니다. `REVIEW-03` 전까지 사용자 승인 없이 진행합니다.
-14. `REVIEW-03`까지도 `blocker`가 남으면 Leader는 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청합니다.
+3. `Trivial`이면 LeadAI가 직접 처리하고 `REQUEST → RUN_DONE` 이벤트 흐름으로 작업을 닫습니다.
+4. `Standard`이면 LeadAI가 세션 Git 브랜치 전략을 적용한 뒤 `REQUEST`를 기록합니다.
+5. PlanAI가 `PLAN`을 작성합니다.
+6. LeadAI가 `PLAN` 이벤트를 확인한 뒤 ExecAI에게 위임합니다.
+7. ExecAI는 `PLAN`·성공 기준·범위에 따라 구현한 뒤 `RUN-01`을 쓰고, LeadAI가 `EXECUTE`를 기록합니다.
+8. LeadAI가 `EXECUTE` 이벤트를 확인한 뒤 PlanAI에게 검토를 위임하고, PlanAI는 해당 `RUN` 경로를 받아 같은 번호의 `REVIEW`를 씁니다.
+9. LeadAI가 `REVIEW` 이벤트를 확인합니다. `blocker`가 없으면 PlanAI가 `CLOSE` 산출물을 씁니다. LeadAI는 결과·검증, 존재하는 조치 대상 nit·리스크, `CLOSE` 산출물 경로를 사용자에게 보고하고 승인을 요청합니다.
+10. 사용자가 명시적으로 승인한 뒤에만 LeadAI가 `CLOSE` 이벤트를 기록하고 승인된 상태를 필요에 따라 커밋합니다. 전용 작업 브랜치를 사용했다면 기준 브랜치로 자동 병합합니다. 커밋 또는 병합에 문제가 있으면 강제하지 않고 blocker로 보고합니다.
+11. 사용자가 승인 대신 피드백·결함을 알려주면 LeadAI가 작업 브랜치에 `FEEDBACK`을 기록합니다. 명백한 결함이면 현재 런에 추가하고, 그렇지 않으면 **현재 런에 추가 / 새로운 런** 중 사용자 선택을 받습니다. 이후 ExecAI 작업부터 다시 진행합니다.
+12. `CLOSE` 승인을 받은 LeadAI는 해당 세션에서 발생한 착오, 해결 방법, 사용자 의견을 종합하여 `.agent-relay/GUIDANCE.md` 수정안 또는 `.agent-relay/lesson-learned/` 추가안을 사용자에게 제안합니다. 사용자가 수락한 항목만 기록합니다.
+13. `blocker`가 있으면 LeadAI가 다음 라운드를 ExecAI에게 위임하고, ExecAI가 `RUN-<NN>`을 쓰면 LeadAI가 `EXECUTE`를 기록한 뒤 PlanAI가 다음 `REVIEW`를 씁니다. `REVIEW-03` 전까지 사용자 승인 없이 진행합니다.
+14. `REVIEW-03`까지도 `blocker`가 남으면 LeadAI는 상태를 보고하고 사용자에게 **재시도 / 계획 수정 / 부분 수락 / 중단** 중 선택을 요청합니다.
 
-Standard 작업에서 사용자 개입이 필요한 경우는 `DONE` 최종 승인, `DONE` 승인 전 피드백·결함(`FEEDBACK`)과 `FEEDBACK` 후 현재 런·새 런 선택, `REVIEW-03` 이후에도 `blocker`가 남는 경우, Leader가 사용자 결정이 필요하다고 판단한 경우뿐입니다. 승인이 끝나면 병합은 자동으로 진행하며 별도 확인을 받지 않습니다.
+Standard 작업에서 사용자 개입이 필요한 경우는 `CLOSE` 최종 승인, `CLOSE` 승인 전 피드백·결함(`FEEDBACK`)과 `FEEDBACK` 후 현재 런·새 런 선택, `REVIEW-03` 이후에도 `blocker`가 남는 경우, LeadAI가 사용자 결정이 필요하다고 판단한 경우뿐입니다. 전용 작업 브랜치를 쓴 경우 승인이 끝나면 병합은 자동으로 진행하며 별도 확인을 받지 않습니다.
 
-`Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있습니다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 Leader는 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가합니다.
+`Trivial` 작업은 사용자 완료 승인 없이 `RUN_DONE`으로 닫을 수 있습니다. 다만 장기 지침이나 재사용 가능한 교훈이 생겼다면 LeadAI는 사용자에게 기록안을 제안하고, 사용자가 수락한 항목만 `GUIDANCE.md` 또는 `lesson-learned/`에 추가합니다.
 
 ## 8. 위임과 보고
 
 ### 컨텍스트 관리
 
-Leader, Planner, Runner는 한 작업 안에서 컨텍스트 교체 없이 연속 사용하는 것을 전제로 합니다.
+LeadAI, PlanAI, ExecAI는 한 작업 안에서 컨텍스트 교체 없이 연속 사용하는 것을 전제로 합니다.
 
-Leader는 컨텍스트가 불필요하게 커지지 않도록 위임 결과를 받을 때 산출물 **경로 + 최소 결정 정보**만 보관합니다.
+LeadAI는 컨텍스트가 불필요하게 커지지 않도록 위임 결과를 받을 때 산출물 **경로 + 최소 결정 정보**만 보관합니다.
 
 - 한 줄 결과
 - 한 줄 검증 상태
 - 해당 시 `blocker` 건수/요약
 - 잔존 리스크 또는 사용자 결정 요구
 
-결정적 모호함이나 사용자 결정이 필요할 때를 제외하고 전체 산출물을 Leader 컨텍스트에 적재하지 않습니다.
+결정적 모호함이나 사용자 결정이 필요할 때를 제외하고 전체 산출물을 LeadAI 컨텍스트에 적재하지 않습니다.
 
-Planner/Runner는 가능하면 같은 컨텍스트를 유지하되, 다음 중 하나라도 발생하면 Leader가 사용자에게 **교체 여부**를 물어야 합니다.
+PlanAI/ExecAI는 가능하면 같은 컨텍스트를 유지하되, 다음 중 하나라도 발생하면 LeadAI가 사용자에게 **교체 여부**를 물어야 합니다.
 
 - 한 인스턴스에 후속 메시지가 5개 이상 누적
 - 작업 주제가 명백히 바뀜
@@ -180,7 +177,7 @@ Planner/Runner는 가능하면 같은 컨텍스트를 유지하되, 다음 중 �
 
 ### 위임 시 필수 필드
 
-Planner/Runner에게 보내는 모든 프롬프트는 자기완결적이어야 하며 다음을 포함합니다.
+PlanAI/ExecAI에게 보내는 모든 프롬프트는 자기완결적이어야 하며 다음을 포함합니다.
 
 - 목표(goal)
 - 관련 파일 또는 조사 범위
@@ -188,15 +185,15 @@ Planner/Runner에게 보내는 모든 프롬프트는 자기완결적이어야 �
 - append할 이벤트명
 - 성공 기준과 검증 방법
 - 범위 외 작업 금지 명시
-- 불명확한 사항은 추정하지 말고 Leader에게 되돌릴 것
+- 불명확한 사항은 추정하지 말고 LeadAI에게 되돌릴 것
 - 단계에 필요한 입력 산출물 경로
 - 완료 전 산출물 작성, 이벤트 append, 마지막 일치 로그 줄 보고를 모두 수행할 것
 
 ### 보고 시 필수 필드
 
-Planner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
+PlanAI가 LeadAI에게 보고할 때는 다음만 간결히 포함합니다.
 
-- `PLAN`/`REVIEW`/`DONE` 산출물 경로
+- `PLAN`/`REVIEW`/`CLOSE` 산출물 경로
 - append한 이벤트명
 - 해당 `task-id`와 이벤트명의 `relay.log` 마지막 일치 줄
 - 판단 결과
@@ -204,7 +201,7 @@ Planner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
 - `nit` 요약
 - 사용자 결정 필요 여부
 
-Runner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
+ExecAI가 LeadAI에게 보고할 때는 다음만 간결히 포함합니다.
 
 - `RUN` 산출물 경로
 - append한 이벤트명
@@ -222,7 +219,7 @@ Runner가 Leader에게 보고할 때는 다음만 간결히 포함합니다.
 필요할 때만 포함합니다.
 
 `Standard` 작업의 완료 또는 승인 요청도 결과, 검증 상태, 조치가 필요한
-blocker/리스크, 승인이 필요할 때의 `DONE` 경로만 우선 보여 줍니다. 상세
+blocker/리스크, 승인이 필요할 때의 `CLOSE` 경로만 우선 보여 줍니다. 상세
 변경과 증거는 요청받지 않는 한 산출물에 둡니다.
 
 ## 9. 목표 파일 구조
@@ -242,7 +239,7 @@ project-root/
     ├── protocol-guard                # relay.log 이벤트 추가와 단계 전이 검증 CLI
     ├── lesson-learned/         # 완료 작업에서 얻은 해결 지식 기록
     │   └── .gitkeep
-    ├── runs/                   # 라운드 산출물(PLAN/RUN/REVIEW/DONE)
+    ├── runs/                   # 라운드 산출물(PLAN/RUN/REVIEW/CLOSE)
     │   └── .gitkeep
     └── templates/
         ├── guidance.md
@@ -250,7 +247,7 @@ project-root/
         ├── plan.md
         ├── run.md
         ├── review.md
-        └── done.md
+        └── close.md
 ```
 
 ## 10. 파일별 역할
@@ -284,7 +281,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 7. 진행 중인 라운드가 있으면 .agent-relay/runs/의 최신 PLAN/RUN/REVIEW 읽기
 ```
 
-같은 세션에서 연속 작업 중이라면 매 사용자 메시지마다 `relay.log`를 다시 읽지 않습니다. 다만 기록이 필요한 새 요청에 착수할 때는 Leader, Planner, Runner 모두 `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`를 반드시 다시 읽습니다.
+같은 세션에서 연속 작업 중이라면 매 사용자 메시지마다 `relay.log`를 다시 읽지 않습니다. 다만 기록이 필요한 새 요청에 착수할 때는 LeadAI, PlanAI, ExecAI 모두 `GUIDANCE.md`, `LESSON-LEARNED.md`, `lesson-learned/`를 반드시 다시 읽습니다.
 
 ## 12. 기록해야 하는 작업
 
@@ -299,7 +296,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 - 이슈 상태 변경
 - 다음 역할이나 후속 세션이 알아야 할 맥락 생성
 
-`Standard`로 분류된 작업은 라운드 산출물(`PLAN`/`RUN`/`REVIEW`/`DONE`)이 본문 기록이고, `relay.log`는 그 산출물을 가리키는 이벤트 인덱스 역할을 합니다.
+`Standard`로 분류된 작업은 라운드 산출물(`PLAN`/`RUN`/`REVIEW`/`CLOSE`)이 본문 기록이고, `relay.log`는 그 산출물을 가리키는 이벤트 인덱스 역할을 합니다.
 
 단순 질의응답, 짧은 설명, 브레인스토밍은 보통 기록하지 않습니다.
 사용자가 맥락 보존을 명시적으로 요청한 경우에는 예외로 기록할 수 있습니다.
@@ -356,7 +353,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 기준으로 진행합니다. 아래는 `README.md`의 `runs/` 중심 목표 구조를
 기준으로 한 핵심 절차입니다.
 
-1. 부트스트랩 이후 작업을 맡을 `Leader`, `Planner`, `Runner` 팀을 구성합니다.
+1. 부트스트랩 이후 작업을 맡을 `LeadAI`, `PlanAI`, `ExecAI` 팀을 구성합니다.
 2. `.agent-relay/`가 이미 있으면 아무 파일도 바꾸지 않고 중단 후 보고합니다.
 3. 대상 프로젝트의 `AGENTS.md`, `CLAUDE.md` 존재 여부를 확인합니다.
 4. `AGENTS.md`가 없으면 `bootstrap/AGENTS.md`를 복사합니다.
@@ -381,7 +378,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 6. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
 7. `.agent-relay/LESSON-LEARNED.md`는 안내 문서이므로 로컬 수정이 없거나 안전히 구분될 때만 갱신합니다.
 8. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
-9. Leader는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당하면 전용 작업 브랜치에서 `REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE`을 기록하고, 승인 후 자동 병합합니다.
+9. LeadAI는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. 보통 `Trivial`이며, `summary`에 이전·이후 `VERSION`을 포함합니다. 범위가 `Standard`에 해당하면 전용 작업 브랜치에서 `REQUEST → PLAN → EXECUTE → REVIEW → CLOSE`을 기록하고, 승인 후 자동 병합합니다.
 
 이전 버전의 `relay.log`가 `agent=`, `task=`, `TASK_BEGIN` 같은 형식을 사용하더라도 기존 줄은 수정하지 않습니다. 새 버전 적용 후 추가하는 이벤트부터 새 형식을 사용합니다.
 
@@ -463,20 +460,19 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `bootstrap/.agent-relay/templates/plan.md` | `PLAN` 산출물 형식 |
 | `bootstrap/.agent-relay/templates/run.md` | `RUN-NN` 산출물 형식 |
 | `bootstrap/.agent-relay/templates/review.md` | `REVIEW-NN` 산출물 형식 |
-| `bootstrap/.agent-relay/templates/done.md` | `DONE` 산출물 형식 |
+| `bootstrap/.agent-relay/templates/close.md` | `CLOSE` 산출물 형식 |
 
 ## 21. 정리
 
-Agent Relay는 Leader / Planner / Runner 에이전트 팀이 역할을 나누고, 이벤트 타임라인과 산출물을 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다.
+Agent Relay는 LeadAI / PlanAI / ExecAI 에이전트 팀이 역할을 나누고, 이벤트 타임라인과 산출물을 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다.
 
 핵심 판단 기준은 세 개입니다.
 
 ```text
 1) 이 요청은 기록 제외인가, Trivial인가, Standard인가?
-2) Standard라면 작업 브랜치에서 REQUEST → PLAN → RUN_ST → RUN_ED → REVIEW → DONE 흐름을 지키고 있는가?
+2) Standard라면 작업 브랜치에서 REQUEST → PLAN → EXECUTE → REVIEW → CLOSE 흐름을 지키고 있는가?
 3) 다음 역할 또는 후속 세션이 이벤트 타임라인과 산출물로 이어받을 수 있는가?
 ```
 
 기록 제외 대상이면 응답만 하고 이벤트를 남기지 않습니다.
-`Trivial`이면 Leader가 직접 처리하고 `REQUEST → RUN_DONE` 흐름이면 충분합니다.
-`Standard`이면 작업 브랜치에서 `REQUEST`부터 기록하고 PLAN → RUN_ST → RUN_ED → REVIEW를 거쳐, `blocker`가 없으면 Planner가 `DONE` 산출물을 작성합니다. Leader는 사용자가 명시적으로 승인한 경우에만 `DONE` 이벤트를 기록하고 승인 상태를 커밋한 뒤 기준 브랜치로 자동 병합합니다.
+`Trivial`이면 LeadAI가 직접 처리하고 `REQUEST → RUN_DONE` 흐름이면 충분합니다.

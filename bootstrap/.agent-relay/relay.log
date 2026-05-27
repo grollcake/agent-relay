@@ -1,2 +1,2 @@
-<YYYY-MM-DDTHH:MM:SS> | <task-id> | REQUEST  | Leader  | Bootstrap Agent Relay
-<YYYY-MM-DDTHH:MM:SS> | <task-id> | RUN_DONE | Leader  | Agent Relay initialized
+<YYYY-MM-DDTHH:MM:SS> | <task-id> | REQUEST  | LeadAI | Bootstrap Agent Relay
+<YYYY-MM-DDTHH:MM:SS> | <task-id> | RUN_DONE | LeadAI | Agent Relay initialized

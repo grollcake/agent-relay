@@ -2,7 +2,7 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-Planner: <planner>
+PlanAI: <planner>
 
 ## Goal
 
@@ -36,7 +36,7 @@ Out of scope:
 ## Relay Log
 
 - Appended event: `PLAN`
-- Last matching `relay.log` line: `<timestamp> | <task-id> | PLAN | Planner | <summary> | <path>`
+- Last matching `relay.log` line: `<timestamp> | <task-id> | PLAN | PlanAI | <summary> | <path>`
 
 ## Risks Or Questions
 
