@@ -2,7 +2,7 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-PlanAI: <planner>
+Planner: <planner>
 Run: <path-to-run>
 
 ## Decision
@@ -22,11 +22,17 @@ can approve `CLOSE`.
 
 - <nit or none>
 
+## Suggested User Checks
+
+- <manual check case 1>
+- <manual check case 2>
+- <manual check case 3>
+
 ## Evidence Reviewed
 
 - <file, command output, or artifact>
 
-## LeadAI Log Action
+## Director Log Action
 
 - Event to append: `REVIEW`
 - Suggested summary: <summary>
@@ -34,4 +40,4 @@ can approve `CLOSE`.
 
 ## Required Next Step
 
-- <ask LeadAI to request user approval | request RUN-<next-NN> | ask LeadAI for decision>
+- <ask Director to request user approval | request RUN-<next-NN> | ask Director for decision>

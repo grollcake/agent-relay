@@ -1,0 +1,116 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+RELAY_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+PROJECT_DIR=$(CDPATH= cd -- "$RELAY_DIR/.." && pwd)
+LOG_FILE="$RELAY_DIR/relay.log"
+
+errors=0
+
+err() {
+  errors=$((errors + 1))
+  printf 'ERROR: %s\n' "$*" >&2
+}
+
+ok() {
+  printf 'OK: %s\n' "$*"
+}
+
+require_file() {
+  [ -f "$1" ] && ok "$1 exists" || err "missing $1"
+}
+
+require_dir() {
+  [ -d "$1" ] && ok "$1 exists" || err "missing $1"
+}
+
+check_agent_blocks() {
+  ag="$PROJECT_DIR/AGENTS.md"
+  claude="$PROJECT_DIR/CLAUDE.md"
+  [ -f "$ag" ] || return 0
+  [ -f "$claude" ] || return 0
+
+  ag_block=$(sed -n '/<agent-relay-rules>/,/<\/agent-relay-rules>/p' "$ag")
+  claude_block=$(sed -n '/<agent-relay-rules>/,/<\/agent-relay-rules>/p' "$claude")
+
+  if [ -z "$ag_block" ]; then
+    err "AGENTS.md missing <agent-relay-rules> block"
+  elif [ -z "$claude_block" ]; then
+    err "CLAUDE.md missing <agent-relay-rules> block"
+  elif [ "$ag_block" != "$claude_block" ]; then
+    err "AGENTS.md and CLAUDE.md Agent Relay blocks differ"
+  else
+    ok "AGENTS.md and CLAUDE.md Agent Relay blocks match"
+  fi
+}
+
+check_log() {
+  [ -f "$LOG_FILE" ] || return 0
+  awk -F'|' -v project="$PROJECT_DIR" '
+    function trim(value) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      return value
+    }
+    function expected_role(event) {
+      if (event == "REQUEST" || event == "FEEDBACK" || event == "CLOSE" || event == "RUN_DONE") return "Director"
+      if (event == "PLANNED" || event == "REVIEW") return "Planner"
+      if (event == "EXECUTED") return "Executor"
+      return ""
+    }
+    NF >= 4 {
+      event = trim($3)
+      role = trim($4)
+      expected = expected_role(event)
+      if (expected == "") {
+        print "ERROR: invalid event on line " NR ": " event
+        bad = 1
+      } else if (role != expected) {
+        print "ERROR: invalid role on line " NR ": " event " requires " expected ", got " role
+        bad = 1
+      }
+      if ((event == "PLANNED" || event == "EXECUTED" || event == "REVIEW" || event == "CLOSE") && NF < 6) {
+        print "ERROR: missing path on line " NR ": " event
+        bad = 1
+      }
+      if (NF >= 6) {
+        path = trim($6)
+        if (path != "" && system("[ -f \"" project "/" path "\" ]") != 0) {
+          print "ERROR: artifact path not found on line " NR ": " path
+          bad = 1
+        }
+        if (event == "EXECUTED" && path != "" && system("grep -Eq '\''(^Status:[[:space:]]*checkpoint([[:space:]]|$)|TODO)'\'' \"" project "/" path "\"") == 0) {
+          print "ERROR: EXECUTED artifact still checkpoint/TODO on line " NR ": " path
+          bad = 1
+        }
+      }
+    }
+    END { exit bad ? 1 : 0 }
+  ' "$LOG_FILE" || errors=$((errors + 1))
+}
+
+cd "$PROJECT_DIR"
+
+require_file "$RELAY_DIR/PROTOCOL.md"
+require_file "$RELAY_DIR/HOW-TO-UPDATE.md"
+require_file "$RELAY_DIR/VERSION"
+require_file "$RELAY_DIR/GUIDANCE.md"
+require_file "$RELAY_DIR/LESSON-LEARNED.md"
+require_file "$LOG_FILE"
+require_file "$RELAY_DIR/scripts/director-tool"
+require_dir "$RELAY_DIR/templates"
+require_dir "$RELAY_DIR/runs"
+require_dir "$RELAY_DIR/lesson-learned"
+
+[ -x "$RELAY_DIR/scripts/director-tool" ] && ok "director-tool is executable" || err "director-tool is not executable"
+[ ! -e "$RELAY_DIR/protocol-guard" ] && ok "legacy protocol-guard absent" || err "legacy protocol-guard should be moved to scripts/director-tool"
+
+check_agent_blocks
+check_log
+
+if [ "$errors" -gt 0 ]; then
+  printf 'relay-lint failed: %s error(s)\n' "$errors" >&2
+  exit 1
+fi
+
+printf 'relay-lint passed\n'

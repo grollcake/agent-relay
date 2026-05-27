@@ -45,16 +45,18 @@ Examples not to record:
 
 ## Conventions
 
-- When LeadAI delegates to PlanAI or ExecAI with an agent/subagent tool, run the
+- When Director delegates to Planner or Executor with an agent/subagent tool, run the
   delegated agent in the background if the tool supports it. In Claude Code,
-  set `run_in_background: true` for every PlanAI/ExecAI delegation, including
-  review delegation and follow-up SendMessage calls, so LeadAI can respond to
+  set `run_in_background: true` for every Planner/Executor delegation, including
+  review delegation and follow-up SendMessage calls, so Director can respond to
   the user while delegated work continues.
 - Treat `REVIEW` as evidence for the user's decision, never as approval. Only
-  explicit user approval allows LeadAI to write and append `CLOSE`; user
+  explicit user approval allows Director to write and append `CLOSE`; user
   `FEEDBACK` after any review is a normal pipeline step.
-- PlanAI and ExecAI notify LeadAI when artifacts are complete and provide a
-  suggested event summary; only LeadAI writes `relay.log`.
+- Planner and Executor notify Director when artifacts are complete and provide a
+  suggested event summary; only Director writes `relay.log`.
+- `director-tool` is Director-owned; delegates must not use it to mutate relay
+  state.
 - Keep delegation prompts brief: pass explicit constraints and source/artifact
-  paths, not copied context or derived criteria. PlanAI defines criteria and
-  risks in `PLAN`; ExecAI and the reviewer follow `PLAN`.
+  paths, not copied context or derived criteria. Planner defines criteria and
+  risks in `PLAN`; Executor and the reviewer follow `PLAN`.

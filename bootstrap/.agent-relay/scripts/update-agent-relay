@@ -1,0 +1,87 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+RELAY_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+PROJECT_DIR=$(CDPATH= cd -- "$RELAY_DIR/.." && pwd)
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  .agent-relay/scripts/update-agent-relay --upstream <agent-relay-repo> [--apply]
+
+Dry-run by default. With --apply, replaces managed Agent Relay files from the
+upstream bootstrap tree while preserving project state files.
+USAGE
+}
+
+upstream=""
+apply=0
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --upstream) upstream="${2:-}"; shift 2 ;;
+    --apply) apply=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf 'unknown argument: %s\n' "$1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+[ -n "$upstream" ] || { usage >&2; exit 1; }
+[ -d "$upstream/bootstrap/.agent-relay" ] || { printf 'invalid upstream: %s\n' "$upstream" >&2; exit 1; }
+[ -f "$RELAY_DIR/VERSION" ] || { printf 'missing %s\n' "$RELAY_DIR/VERSION" >&2; exit 1; }
+[ -f "$upstream/VERSION" ] || { printf 'missing upstream VERSION\n' >&2; exit 1; }
+
+current_version=$(cat "$RELAY_DIR/VERSION")
+next_version=$(cat "$upstream/VERSION")
+
+cd "$PROJECT_DIR"
+
+printf 'Agent Relay update: %s -> %s\n' "$current_version" "$next_version"
+
+if [ "$apply" -ne 1 ]; then
+  cat <<EOF
+Dry run. Re-run with --apply to update:
+- WARNING: --apply replaces the managed files below; review local customizations first.
+- AGENTS.md Agent Relay block
+- CLAUDE.md Agent Relay block when present
+- .agent-relay/HOW-TO-UPDATE.md
+- .agent-relay/PROTOCOL.md
+- .agent-relay/scripts/
+- .agent-relay/templates/
+- .agent-relay/VERSION
+
+Preserved:
+- .agent-relay/GUIDANCE.md
+- .agent-relay/LESSON-LEARNED.md
+- .agent-relay/lesson-learned/
+- .agent-relay/relay.log
+- .agent-relay/runs/
+EOF
+  exit 0
+fi
+
+mkdir -p "$RELAY_DIR/scripts" "$RELAY_DIR/templates"
+
+if [ -f "$PROJECT_DIR/AGENTS.md" ]; then
+  "$RELAY_DIR/scripts/merge-agent-block" "$PROJECT_DIR/AGENTS.md" "$upstream/bootstrap/AGENTS.md"
+else
+  cp "$upstream/bootstrap/AGENTS.md" "$PROJECT_DIR/AGENTS.md"
+fi
+
+if [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
+  "$RELAY_DIR/scripts/merge-agent-block" "$PROJECT_DIR/CLAUDE.md" "$upstream/bootstrap/CLAUDE.md"
+fi
+
+cp "$upstream/bootstrap/.agent-relay/HOW-TO-UPDATE.md" "$RELAY_DIR/HOW-TO-UPDATE.md"
+cp "$upstream/bootstrap/.agent-relay/PROTOCOL.md" "$RELAY_DIR/PROTOCOL.md"
+cp "$upstream/bootstrap/.agent-relay/scripts/"* "$RELAY_DIR/scripts/"
+cp "$upstream/bootstrap/.agent-relay/templates/"*.md "$RELAY_DIR/templates/"
+cp "$upstream/VERSION" "$RELAY_DIR/VERSION"
+chmod +x "$RELAY_DIR/scripts/"*
+
+task_id=$(LC_ALL=C tr -dc 'a-z' < /dev/urandom | dd bs=1 count=4 2>/dev/null)
+"$RELAY_DIR/scripts/director-tool" append REQUEST --task-id "$task_id" --role Director --summary "Update Agent Relay $current_version -> $next_version" >/dev/null
+"$RELAY_DIR/scripts/director-tool" append RUN_DONE --task-id "$task_id" --role Director --summary "Agent Relay updated to $next_version" >/dev/null
+
+printf 'Agent Relay updated: %s -> %s\n' "$current_version" "$next_version"

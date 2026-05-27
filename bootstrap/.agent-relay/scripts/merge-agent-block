@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  .agent-relay/scripts/merge-agent-block <target-file> <source-file>
+
+Replaces the target <agent-relay-rules>...</agent-relay-rules> block with the
+source block. If the target has no block, appends the source block.
+USAGE
+}
+
+[ "${1:-}" != "-h" ] && [ "${1:-}" != "--help" ] || { usage; exit 0; }
+[ "$#" -eq 2 ] || { usage >&2; exit 1; }
+
+target="$1"
+source="$2"
+
+[ -f "$source" ] || { printf 'missing source: %s\n' "$source" >&2; exit 1; }
+
+tmp="${target}.tmp.$$"
+
+perl -0pe '
+  BEGIN {
+    $source = shift @ARGV;
+    open my $fh, "<", $source or die "missing source: $source\n";
+    local $/;
+    $source_text = <$fh>;
+    close $fh;
+    die "source missing <agent-relay-rules> block\n"
+      unless $source_text =~ /<agent-relay-rules>.*?<\/agent-relay-rules>/s;
+    $block = $&;
+  }
+  if (s/<agent-relay-rules>.*?<\/agent-relay-rules>/$block/s) {
+    $replaced = 1;
+  }
+  END {
+    if (!$replaced) {
+      print "\n\n" unless /\n\z/;
+      print $block, "\n";
+    }
+  }
+' "$source" "${target:-/dev/null}" > "$tmp"
+
+mv "$tmp" "$target"
+printf 'merged Agent Relay block: %s\n' "$target"

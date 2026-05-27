@@ -2,8 +2,9 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-ExecAI: <executor>
+Executor: <executor>
 Plan: <path-to-plan>
+Status: <checkpoint | complete>
 
 ## Changes
 
@@ -14,7 +15,7 @@ Plan: <path-to-plan>
 
 - `<command or check>`: <result>
 
-## LeadAI Log Action
+## Director Log Action
 
 - Event to append: `EXECUTED`
 - Suggested summary: <summary>
@@ -28,6 +29,6 @@ Plan: <path-to-plan>
 
 - <risk or none>
 
-## Out Of Scope Returned To LeadAI
+## Out Of Scope Returned To Director
 
 - <item or none>

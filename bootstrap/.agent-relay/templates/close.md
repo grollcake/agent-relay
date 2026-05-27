@@ -2,7 +2,7 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-LeadAI: <leader>
+Director: <director>
 Approved By: User
 Reviewed Evidence: <path-to-review>
 
@@ -22,7 +22,7 @@ Reviewed Evidence: <path-to-review>
 
 - <risk or none>
 
-## LeadAI Log Action
+## Director Log Action
 
 - Event to append: `CLOSE`
 - Suggested summary: <summary>
@@ -30,5 +30,5 @@ Reviewed Evidence: <path-to-review>
 
 ## Approval Basis
 
-LeadAI writes this artifact and appends the final `CLOSE` event only after
+Director writes this artifact and appends the final `CLOSE` event only after
 explicit user approval.

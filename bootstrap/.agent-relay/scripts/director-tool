@@ -1,0 +1,419 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+RELAY_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+PROJECT_DIR=$(CDPATH= cd -- "$RELAY_DIR/.." && pwd)
+LOG_FILE="$RELAY_DIR/relay.log"
+cd "$PROJECT_DIR"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  .agent-relay/scripts/director-tool append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]
+  .agent-relay/scripts/director-tool gate <before-execute|before-review|before-approval> --task-id <id>
+  .agent-relay/scripts/director-tool new-round <slug> --summary <text> [--branch <name>]
+  .agent-relay/scripts/director-tool feedback --task-id <id> --summary <text>
+  .agent-relay/scripts/director-tool status [--task-id <id>]
+  .agent-relay/scripts/director-tool subagent-prompt <plan|review|exec> --task-id <id> --key <key> [--run-number <NN>]
+
+Events: REQUEST PLANNED EXECUTED REVIEW FEEDBACK CLOSE RUN_DONE
+Gates:
+  before-execute   requires PLANNED
+  before-review    requires EXECUTED
+  before-approval  requires REVIEW
+
+new-round generates a 4-letter task-id, builds key YYYYMMDD-HHMM-<slug>,
+optionally creates and switches to <branch>, then appends REQUEST. Prints
+task_id, key, and standard artifact paths in shell-safe form.
+
+feedback appends a FEEDBACK event under the existing task-id (Director role).
+
+status [--task-id <id>] prints the requested or last-open task's event
+history, last_event, next_gate, and current branch.
+
+subagent-prompt emits a ready-to-paste delegation prompt body for the named
+phase. plan = initial PLAN authoring (Planner). review = reviewing RUN-<NN>
+(Planner). exec = implementing PLAN (Executor). Director captures stdout and
+passes it as the Agent tool's prompt argument.
+USAGE
+}
+
+die() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
+
+require_log() {
+  [ -f "$LOG_FILE" ] || die "missing $LOG_FILE"
+}
+
+valid_event() {
+  case "$1" in
+    REQUEST|PLANNED|EXECUTED|REVIEW|FEEDBACK|CLOSE|RUN_DONE) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+expected_role() {
+  case "$1" in
+    REQUEST|FEEDBACK|CLOSE|RUN_DONE) printf '%s\n' "Director" ;;
+    PLANNED|REVIEW) printf '%s\n' "Planner" ;;
+    EXECUTED) printf '%s\n' "Executor" ;;
+    *) return 1 ;;
+  esac
+}
+
+last_matching_line() {
+  task_id="$1"
+  event="$2"
+  awk -F'|' -v task="$task_id" -v event="$event" '
+    function trim_field(value) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      return value
+    }
+    NF >= 4 && trim_field($2) == task && trim_field($3) == event { line = $0 }
+    END { if (line != "") print line }
+  ' "$LOG_FILE"
+}
+
+last_event_for_task() {
+  task_id="$1"
+  awk -F'|' -v task="$task_id" '
+    function trim_field(value) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      return value
+    }
+    NF >= 4 && trim_field($2) == task { ev = trim_field($3) }
+    END { if (ev != "") print ev }
+  ' "$LOG_FILE"
+}
+
+generate_task_id() {
+  # 4 lowercase letters from /dev/urandom (POSIX target envs all provide it).
+  LC_ALL=C tr -dc 'a-z' < /dev/urandom | dd bs=1 count=4 2>/dev/null
+  printf '\n'
+}
+
+append_raw_event() {
+  ts="$1"
+  task_id="$2"
+  event="$3"
+  role="$4"
+  summary="$5"
+  path="$6"
+  if [ -n "$path" ]; then
+    printf '%s | %-4s | %-8s | %-8s | %s | %s\n' \
+      "$ts" "$task_id" "$event" "$role" "$summary" "$path" >> "$LOG_FILE"
+  else
+    printf '%s | %-4s | %-8s | %-8s | %s\n' \
+      "$ts" "$task_id" "$event" "$role" "$summary" >> "$LOG_FILE"
+  fi
+}
+
+validate_artifact_ready_for_event() {
+  event="$1"
+  path="$2"
+
+  case "$event" in
+    PLANNED|EXECUTED|REVIEW|CLOSE)
+      [ -f "$path" ] || die "$event path not found: $path"
+      ;;
+  esac
+
+  if [ "$event" = "EXECUTED" ]; then
+    if grep -Eq '(^Status:[[:space:]]*checkpoint([[:space:]]|$)|TODO)' "$path"; then
+      die "EXECUTED requires complete RUN: resolve checkpoint/TODO fields in $path"
+    fi
+  fi
+}
+
+append_event() {
+  event="${1:-}"
+  [ -n "$event" ] || die "missing EVENT"
+  valid_event "$event" || die "invalid event: $event"
+  shift
+
+  task_id=""
+  role=""
+  summary=""
+  path=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      --role) role="${2:-}"; shift 2 ;;
+      --summary) summary="${2:-}"; shift 2 ;;
+      --path) path="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+
+  [ -n "$task_id" ] || die "missing --task-id"
+  [ -n "$role" ] || die "missing --role"
+  [ -n "$summary" ] || die "missing --summary"
+  expected="$(expected_role "$event")"
+  [ "$role" = "$expected" ] || die "$event requires --role $expected"
+
+  case "$event" in
+    PLANNED|EXECUTED|REVIEW|CLOSE)
+      [ -n "$path" ] || die "$event requires --path"
+      validate_artifact_ready_for_event "$event" "$path"
+      ;;
+  esac
+
+  require_log
+  ts="$(date '+%Y-%m-%dT%H:%M:%S')"
+  append_raw_event "$ts" "$task_id" "$event" "$role" "$summary" "$path"
+
+  line="$(last_matching_line "$task_id" "$event")"
+  [ -n "$line" ] || die "append failed: matching log line not found"
+  printf '%s\n' "$line"
+}
+
+gate_event() {
+  gate="${1:-}"
+  [ -n "$gate" ] || die "missing gate name"
+  shift
+
+  task_id=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+  [ -n "$task_id" ] || die "missing --task-id"
+
+  case "$gate" in
+    before-execute) event="PLANNED" ;;
+    before-review) event="EXECUTED" ;;
+    before-approval) event="REVIEW" ;;
+    *) die "unknown gate: $gate" ;;
+  esac
+
+  require_log
+  line="$(last_matching_line "$task_id" "$event")"
+  [ -n "$line" ] || die "gate failed: missing $event for task-id $task_id"
+  printf '%s\n' "$line"
+}
+
+new_round() {
+  slug="${1:-}"
+  [ -n "$slug" ] || die "missing <slug>"
+  case "$slug" in
+    -*) die "missing <slug>" ;;
+  esac
+  shift
+
+  summary=""
+  branch=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --summary) summary="${2:-}"; shift 2 ;;
+      --branch) branch="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+  [ -n "$summary" ] || die "missing --summary"
+
+  # slug must be lowercase kebab-case (a-z, 0-9, -)
+  case "$slug" in
+    *[!a-z0-9-]*|-*|*-) die "slug must be lowercase kebab-case (a-z, 0-9, -)" ;;
+  esac
+
+  require_log
+
+  if [ -n "$branch" ]; then
+    git rev-parse --git-dir >/dev/null 2>&1 || die "not in a git repo"
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+      die "branch already exists: $branch"
+    fi
+    git checkout -b "$branch" >&2 || die "branch create failed"
+  fi
+
+  task_id="$(generate_task_id)"
+  [ -n "$task_id" ] || die "task-id generation failed"
+  ts="$(date '+%Y-%m-%dT%H:%M:%S')"
+  hhmm="$(date '+%Y%m%d-%H%M')"
+  key="$hhmm-$slug"
+
+  append_raw_event "$ts" "$task_id" "REQUEST" "Director" "$summary" ""
+
+  # shell-safe export lines
+  cat <<EOF
+task_id='$task_id'
+key='$key'
+plan_path='.agent-relay/runs/$key-PLAN.md'
+run_path_template='.agent-relay/runs/$key-RUN-NN.md'
+review_path_template='.agent-relay/runs/$key-REVIEW-NN.md'
+close_path='.agent-relay/runs/$key-CLOSE.md'
+EOF
+}
+
+feedback_event() {
+  task_id=""
+  summary=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      --summary) summary="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+  [ -n "$task_id" ] || die "missing --task-id"
+  [ -n "$summary" ] || die "missing --summary"
+
+  require_log
+
+  # FEEDBACK must follow an existing event under the same task-id
+  prior="$(last_event_for_task "$task_id")"
+  [ -n "$prior" ] || die "no prior events for task-id $task_id"
+
+  ts="$(date '+%Y-%m-%dT%H:%M:%S')"
+  append_raw_event "$ts" "$task_id" "FEEDBACK" "Director" "$summary" ""
+
+  line="$(last_matching_line "$task_id" "FEEDBACK")"
+  [ -n "$line" ] || die "append failed: matching log line not found"
+  printf '%s\n' "$line"
+}
+
+status_cmd() {
+  task_id=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+
+  require_log
+
+  if [ -z "$task_id" ]; then
+    task_id="$(awk -F'|' '
+      function trim_field(value) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+        return value
+      }
+      NF >= 4 {
+        tid = trim_field($2)
+        ev = trim_field($3)
+        if (ev == "REQUEST") last_req[tid] = NR
+        if (ev == "CLOSE" || ev == "RUN_DONE") closed[tid] = 1
+      }
+      END {
+        best = ""
+        best_nr = 0
+        for (t in last_req) {
+          if (!(t in closed) && last_req[t] > best_nr) {
+            best = t
+            best_nr = last_req[t]
+          }
+        }
+        if (best != "") print best
+      }
+    ' "$LOG_FILE")"
+    if [ -z "$task_id" ]; then
+      printf 'no open task\n'
+      branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || printf 'not-a-git-repo')"
+      printf 'branch: %s\n' "$branch"
+      return 0
+    fi
+  fi
+
+  printf 'task_id: %s\n' "$task_id"
+  printf 'events:\n'
+  awk -F'|' -v task="$task_id" '
+    function trim_field(value) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      return value
+    }
+    NF >= 4 && trim_field($2) == task { print "  " $0 }
+  ' "$LOG_FILE"
+
+  last_ev="$(last_event_for_task "$task_id")"
+  printf 'last_event: %s\n' "${last_ev:-none}"
+
+  case "$last_ev" in
+    REQUEST)  printf 'next_gate: PLANNED (delegate Planner)\n' ;;
+    PLANNED)  printf 'next_gate: EXECUTED (delegate Executor)\n' ;;
+    EXECUTED) printf 'next_gate: REVIEW (delegate Planner review)\n' ;;
+    REVIEW)   printf 'next_gate: user approval -> CLOSE\n' ;;
+    FEEDBACK) printf 'next_gate: EXECUTED (resume Executor work)\n' ;;
+    CLOSE)    printf 'next_gate: closed\n' ;;
+    RUN_DONE) printf 'next_gate: closed (direct work)\n' ;;
+    *)        printf 'next_gate: unknown\n' ;;
+  esac
+
+  branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || printf 'not-a-git-repo')"
+  printf 'branch: %s\n' "$branch"
+}
+
+subagent_prompt() {
+  role="${1:-}"
+  [ -n "$role" ] || die "missing role (plan|review|exec)"
+  shift
+
+  task_id=""
+  key=""
+  run_number="01"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      --key) key="${2:-}"; shift 2 ;;
+      --run-number) run_number="${2:-}"; shift 2 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+  [ -n "$task_id" ] || die "missing --task-id"
+  [ -n "$key" ] || die "missing --key"
+
+  case "$role" in
+    plan)
+      cat <<EOF
+Planner for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/GUIDANCE.md\`, \`.agent-relay/LESSON-LEARNED.md\` index (open matching records only).
+
+Artifact: \`.agent-relay/runs/${key}-PLAN.md\` (template: \`.agent-relay/templates/plan.md\`). Include §Director Brief at top with goal, scope, success criteria, risks, required checks, and a minimal Executor Prompt block.
+
+Do NOT write \`relay.log\`. Return ambiguity to Director rather than guessing. Event for Director to append after artifact completion: \`PLANNED\`. Report ≤200 words with artifact path and suggested log summary.
+EOF
+      ;;
+    review)
+      cat <<EOF
+Planner REVIEW phase for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/GUIDANCE.md\`, matching lesson records.
+
+Inputs:
+- PLAN: \`.agent-relay/runs/${key}-PLAN.md\`
+- RUN-${run_number}: \`.agent-relay/runs/${key}-RUN-${run_number}.md\`
+
+Artifact: \`.agent-relay/runs/${key}-REVIEW-${run_number}.md\` (template: \`.agent-relay/templates/review.md\`).
+
+REVIEW gathers evidence; you do NOT approve CLOSE. Add 3-5 user manual checks to the artifact. Do NOT write \`relay.log\`. Event for Director: \`REVIEW\`. Report ≤200 words with blockers, nits, checks, and risks.
+EOF
+      ;;
+    exec)
+      cat <<EOF
+Executor for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/GUIDANCE.md\`, matching lesson records.
+
+PLAN: \`.agent-relay/runs/${key}-PLAN.md\` — implement §Plan steps verbatim; follow §Director Brief Executor Prompt constraints.
+
+Artifact: \`.agent-relay/runs/${key}-RUN-${run_number}.md\` (template: \`.agent-relay/templates/run.md\`).
+
+You may save the RUN as a checkpoint before long validation. TODO fields mean incomplete. Do NOT write \`relay.log\`. Return ambiguity to Director rather than guessing. Event for Director after artifact completion: \`EXECUTED\`. Report ≤200 words with validation results and blockers.
+EOF
+      ;;
+    *) die "unknown role: $role (plan|review|exec)" ;;
+  esac
+}
+
+command="${1:-}"
+case "$command" in
+  append) shift; append_event "$@" ;;
+  gate) shift; gate_event "$@" ;;
+  new-round) shift; new_round "$@" ;;
+  feedback) shift; feedback_event "$@" ;;
+  status) shift; status_cmd "$@" ;;
+  subagent-prompt) shift; subagent_prompt "$@" ;;
+  -h|--help|help) usage ;;
+  *) usage; exit 1 ;;
+esac

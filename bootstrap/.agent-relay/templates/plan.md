@@ -2,16 +2,16 @@
 
 Task ID: <task-id>
 Date: <YYYY-MM-DD>
-PlanAI: <planner>
+Planner: <planner>
 
-## LeadAI Brief
+## Director Brief
 
 - Goal: <one sentence>
 - Scope: <one sentence>
 - Success Criteria: <one or two observable checks>
 - Risks: <blockers, sensitive areas, or none>
 - Required Checks: `<command or check>`
-- ExecAI Prompt: <minimal self-contained instruction LeadAI can pass to ExecAI>
+- Executor Prompt: <minimal self-contained instruction Director can pass to Executor>
 
 ## Goal
 
@@ -42,7 +42,7 @@ Out of scope:
 
 - `<command or check>`: <expected result>
 
-## LeadAI Log Action
+## Director Log Action
 
 - Event to append: `PLANNED`
 - Suggested summary: <summary>
