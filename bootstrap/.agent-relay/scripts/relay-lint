@@ -92,6 +92,9 @@ check_log() {
 cd "$PROJECT_DIR"
 
 require_file "$RELAY_DIR/PROTOCOL.md"
+require_file "$RELAY_DIR/DIRECTOR.md"
+require_file "$RELAY_DIR/PLANNER.md"
+require_file "$RELAY_DIR/EXECUTOR.md"
 require_file "$RELAY_DIR/HOW-TO-UPDATE.md"
 require_file "$RELAY_DIR/VERSION"
 require_file "$RELAY_DIR/GUIDANCE.md"

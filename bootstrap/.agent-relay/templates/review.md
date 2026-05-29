@@ -32,9 +32,8 @@ can approve `CLOSE`.
 
 - <file, command output, or artifact>
 
-## Director Log Action
+## Report To Director
 
-- Event to append: `REVIEW`
 - Suggested summary: <summary>
 - Artifact path: <path>
 

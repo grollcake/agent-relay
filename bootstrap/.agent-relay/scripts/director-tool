@@ -371,16 +371,16 @@ subagent_prompt() {
   case "$role" in
     plan)
       cat <<EOF
-Planner for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/GUIDANCE.md\`, \`.agent-relay/LESSON-LEARNED.md\` index (open matching records only).
+Planner for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/PLANNER.md\`, \`.agent-relay/GUIDANCE.md\`, and the \`.agent-relay/LESSON-LEARNED.md\` index (open matching records only).
 
 Artifact: \`.agent-relay/runs/${key}-PLAN.md\` (template: \`.agent-relay/templates/plan.md\`). Include §Director Brief at top with goal, scope, success criteria, risks, required checks, and a minimal Executor Prompt block.
 
-Do NOT write \`relay.log\`. Return ambiguity to Director rather than guessing. Event for Director to append after artifact completion: \`PLANNED\`. Report ≤200 words with artifact path and suggested log summary.
+Return ambiguity to Director rather than guessing. Report ≤200 words with artifact path and suggested summary.
 EOF
       ;;
     review)
       cat <<EOF
-Planner REVIEW phase for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/GUIDANCE.md\`, matching lesson records.
+Planner REVIEW phase for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/PLANNER.md\`, \`.agent-relay/GUIDANCE.md\`, and matching lesson records.
 
 Inputs:
 - PLAN: \`.agent-relay/runs/${key}-PLAN.md\`
@@ -388,18 +388,18 @@ Inputs:
 
 Artifact: \`.agent-relay/runs/${key}-REVIEW-${run_number}.md\` (template: \`.agent-relay/templates/review.md\`).
 
-REVIEW gathers evidence; you do NOT approve CLOSE. Add 3-5 user manual checks to the artifact. Do NOT write \`relay.log\`. Event for Director: \`REVIEW\`. Report ≤200 words with blockers, nits, checks, and risks.
+REVIEW gathers evidence; you do NOT approve completion. Add 3-5 user manual checks to the artifact. Report ≤200 words with blockers, nits, checks, risks, artifact path, and suggested summary.
 EOF
       ;;
     exec)
       cat <<EOF
-Executor for round \`${task_id}\`. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/GUIDANCE.md\`, matching lesson records.
+Executor for assigned round. Read \`.agent-relay/PROTOCOL.md\`, \`.agent-relay/EXECUTOR.md\`, \`.agent-relay/GUIDANCE.md\`, and matching lesson records.
 
 PLAN: \`.agent-relay/runs/${key}-PLAN.md\` — implement §Plan steps verbatim; follow §Director Brief Executor Prompt constraints.
 
 Artifact: \`.agent-relay/runs/${key}-RUN-${run_number}.md\` (template: \`.agent-relay/templates/run.md\`).
 
-You may save the RUN as a checkpoint before long validation. TODO fields mean incomplete. Do NOT write \`relay.log\`. Return ambiguity to Director rather than guessing. Event for Director after artifact completion: \`EXECUTED\`. Report ≤200 words with validation results and blockers.
+You may save the RUN as a checkpoint before long validation. TODO fields mean incomplete. Return ambiguity to Director rather than guessing. Report ≤200 words with validation results, blockers or risks, artifact path, and suggested summary.
 EOF
       ;;
     *) die "unknown role: $role (plan|review|exec)" ;;

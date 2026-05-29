@@ -23,6 +23,8 @@ that.
 ## Do Not
 
 - <thing future agents must not do>
+- Do not fix user-reported defects by guesswork; gather evidence first.
+- Do not finish a user-reported defect fix without recording a self smoke test.
 
 ## Security And Privacy
 

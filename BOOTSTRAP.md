@@ -131,6 +131,9 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 | `AGENTS.md` | 최신 `bootstrap/AGENTS.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체 또는 보강 |
 | `.agent-relay/HOW-TO-UPDATE.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/PROTOCOL.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
+| `.agent-relay/DIRECTOR.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
+| `.agent-relay/PLANNER.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
+| `.agent-relay/EXECUTOR.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/scripts/director-tool` | task 생성, 이벤트 추가, 단계 gate, 상태 요약, 위임 프롬프트를 처리하는 Director-owned CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
 | `.agent-relay/scripts/relay-lint` | relay 상태 검증 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
 | `.agent-relay/scripts/merge-agent-block` | Agent Relay 블록 병합 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |

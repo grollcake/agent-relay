@@ -52,6 +52,9 @@ bootstrap/
 ├── CLAUDE.md                          # Claude Code용 동일 Agent Relay 블록 (선택)
 └── .agent-relay/                      # 프로젝트 루트로 복사 (필수)
     ├── PROTOCOL.md                    # Agent Relay 규칙(필수)
+    ├── DIRECTOR.md                    # Director 전용 프로토콜
+    ├── PLANNER.md                     # Planner 전용 프로토콜
+    ├── EXECUTOR.md                    # Executor 전용 프로토콜
     ├── HOW-TO-UPDATE.md               # 설치된 Agent Relay 업데이트 절차
     ├── VERSION                        # 설치 버전
     ├── GUIDANCE.md                    # 장기 지침/제약 누적
@@ -131,6 +134,7 @@ Director는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판�
 - 표준 처리 흐름은 `REQUEST` → `PLANNED` → `EXECUTED` → `REVIEW` → `CLOSE`이다.
 - `Standard`의 `REQUEST`는 세션 브랜치 전략을 적용한 뒤 기록한다. 전용 작업 브랜치를 쓰는 경우 승인 전에는 기준 브랜치에 해당 작업의 이벤트나 변경을 기록하지 않는다.
 - `FEEDBACK`은 사용자가 `CLOSE` 승인 전 피드백·결함을 알려줄 때 Director가 기록한다. 같은 `task-id`와 산출물 파일 키를 유지한다.
+- 사용자가 보고한 결함은 Director가 Executor에 전달하고, 수정 전 증거와 수정 후 셀프 스모크 테스트를 `RUN`에 기록한다.
 - `FEEDBACK` 후 Director는 **현재 런에 추가**할지 **새로운 런**으로 돌릴지 사용자에게 묻는다. 명백한 결함이면 사용자 확인 없이 현재 런에 추가한다.
 - **현재 런에 추가**: 마지막 `RUN-<NN>` 범위와 기존 `PLAN` 안에서 `EXECUTED` → `REVIEW-<NN>`을 다시 진행한다. `CLOSE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용한다.
 - **새로운 런**: 다음 `RUN-<NN+1>`로 `EXECUTED` → `REVIEW-<NN+1>`을 진행한다.
@@ -316,4 +320,5 @@ AGENTS.md 또는 CLAUDE.md와 .agent-relay/PROTOCOL.md 기준으로 진행해.
 
 - [`BOOTSTRAP.md`](BOOTSTRAP.md) — 에이전트용 부트스트랩 절차 (단계별, 머지/중단 분기 포함)
 - [`PROTOCOL-GUIDE.md`](PROTOCOL-GUIDE.md) — 한국어 가이드 (운영 원칙, 부트스트랩 절차, 파일별 역할 정리)
-- [`bootstrap/.agent-relay/PROTOCOL.md`](bootstrap/.agent-relay/PROTOCOL.md) — 영문 정식 사양 (핵심지침, 이벤트 타입, 기타 규칙)
+- [`bootstrap/.agent-relay/PROTOCOL.md`](bootstrap/.agent-relay/PROTOCOL.md) — 공통 규칙
+- [`bootstrap/.agent-relay/DIRECTOR.md`](bootstrap/.agent-relay/DIRECTOR.md), [`PLANNER.md`](bootstrap/.agent-relay/PLANNER.md), [`EXECUTOR.md`](bootstrap/.agent-relay/EXECUTOR.md) — 역할별 프로토콜

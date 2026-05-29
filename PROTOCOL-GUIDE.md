@@ -53,6 +53,7 @@ Director는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판�
 - 표준 처리 흐름은 `REQUEST` → `PLANNED` → `EXECUTED` → `REVIEW` → `CLOSE`입니다.
 - `Standard`의 `REQUEST`는 세션 브랜치 전략을 적용한 뒤 기록합니다. 전용 작업 브랜치를 쓰는 경우 승인 전에는 기준 브랜치에 해당 작업의 이벤트나 변경을 기록하지 않습니다.
 - `FEEDBACK`은 사용자가 `CLOSE` 승인 전 피드백·결함을 알려줄 때 Director가 기록합니다. 같은 `task-id`와 산출물 파일 키를 유지합니다.
+- 사용자가 보고한 결함은 Director가 Executor에 전달하고, 수정 전 증거와 수정 후 셀프 스모크 테스트를 `RUN`에 기록합니다.
 - `FEEDBACK` 후 Director는 **현재 런에 추가**할지 **새로운 런**으로 돌릴지 사용자에게 묻습니다. 명백한 결함이면 사용자 확인 없이 현재 런에 추가합니다.
 - **현재 런에 추가**: 마지막 `RUN-<NN>` 범위와 기존 `PLAN` 안에서 `EXECUTED` → `REVIEW-<NN>`을 다시 진행합니다. `CLOSE` 이벤트 승인 전이면 `RUN-<NN>.md` 갱신을 허용합니다.
 - **새로운 런**: 다음 `RUN-<NN+1>`로 `EXECUTED` → `REVIEW-<NN+1>`을 진행합니다.
@@ -225,6 +226,9 @@ project-root/
 ├── CLAUDE.md                  # 선택, 동일 Agent Relay 블록을 포함
 └── .agent-relay/
     ├── PROTOCOL.md
+    ├── DIRECTOR.md
+    ├── PLANNER.md
+    ├── EXECUTOR.md
     ├── HOW-TO-UPDATE.md
     ├── VERSION
     ├── GUIDANCE.md             # 장기 지침/제약 누적
@@ -253,7 +257,10 @@ project-root/
 | 파일 | 필수 여부 | 역할 |
 |---|---:|---|
 | `AGENTS.md` | 기본 | 모든 에이전트가 읽는 공통 작업 지침입니다. Claude 사용자가 `CLAUDE.md`만 유지하는 경우에는 생략할 수 있습니다. |
-| `.agent-relay/PROTOCOL.md` | 필수 | Agent Relay의 최소 규칙입니다. |
+| `.agent-relay/PROTOCOL.md` | 필수 | 모든 역할이 읽는 공통 규칙입니다. |
+| `.agent-relay/DIRECTOR.md` | 필수 | Director 전용 프로토콜입니다. |
+| `.agent-relay/PLANNER.md` | 필수 | Planner 전용 프로토콜입니다. |
+| `.agent-relay/EXECUTOR.md` | 필수 | Executor 전용 프로토콜입니다. |
 | `.agent-relay/HOW-TO-UPDATE.md` | 필수 | 이미 설치된 Agent Relay를 업데이트할 때 따르는 절차입니다. |
 | `.agent-relay/VERSION` | 필수 | 설치 버전입니다. 업데이트 시 기본 upstream과 비교하는 기준으로 씁니다. |
 | `.agent-relay/GUIDANCE.md` | 누적 관리 | 세션을 넘어 유지할 사용자 지침, 제약, 금지사항을 담는 문서입니다. |
@@ -269,14 +276,15 @@ project-root/
 
 ## 11. 합류할 때 읽는 순서
 
-새 세션을 시작하면 AI 에이전트는 현재 사용 도구가 읽는 지시 파일(`AGENTS.md`, `CLAUDE.md`, 또는 둘 다)을 우선 읽습니다. 두 파일의 `<agent-relay-rules>...</agent-relay-rules>` 블록은 동일하게 유지되므로 하나만 남아 있어도 됩니다. 여기서 Agent Relay 안내를 확인하면 `.agent-relay/PROTOCOL.md`를 읽고, 그 규칙에 따라 프로젝트 맥락과 진행 중인 작업을 확인합니다.
+새 세션을 시작하면 AI 에이전트는 현재 사용 도구가 읽는 지시 파일(`AGENTS.md`, `CLAUDE.md`, 또는 둘 다)을 우선 읽습니다. 두 파일의 `<agent-relay-rules>...</agent-relay-rules>` 블록은 동일하게 유지되므로 하나만 남아 있어도 됩니다. 여기서 Agent Relay 안내를 확인하면 `.agent-relay/PROTOCOL.md`와 자신의 역할별 프로토콜만 읽고, 그 규칙에 따라 프로젝트 맥락과 진행 중인 작업을 확인합니다.
 
 Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 
 ```text
 1. AGENTS.md 또는 CLAUDE.md에서 Agent Relay 안내 확인
 2. .agent-relay/PROTOCOL.md
-3. .agent-relay/GUIDANCE.md
+3. .agent-relay/<ROLE>.md
+4. .agent-relay/GUIDANCE.md
 4. .agent-relay/LESSON-LEARNED.md 인덱스
 5. 인덱스의 `Applies When` 또는 `Trigger / Symptom`이 현재 범위와 맞는 .agent-relay/lesson-learned/ 기록
 6. .agent-relay/relay.log의 마지막 50줄
@@ -377,7 +385,7 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 3. `AGENTS.md`는 최신 `bootstrap/AGENTS.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체하거나 보강합니다.
 4. `CLAUDE.md`가 존재하면 최신 `bootstrap/CLAUDE.md`의 동일 블록과 비교해 Agent Relay 블록만 교체하거나 보강합니다.
 5. `.agent-relay/scripts/update-agent-relay --upstream <repo>`로 dry-run을 확인하고, managed 파일의 로컬 수정을 덮어써도 될 때만 `--apply`를 붙입니다.
-6. `.agent-relay/HOW-TO-UPDATE.md`, `.agent-relay/PROTOCOL.md`, `.agent-relay/scripts/`, `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
+6. `.agent-relay/HOW-TO-UPDATE.md`, `.agent-relay/PROTOCOL.md`, 역할별 프로토콜, `.agent-relay/scripts/`, `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
 7. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
 8. `.agent-relay/LESSON-LEARNED.md`는 프로젝트별 기록 인덱스이므로 덮어쓰지 않습니다.
 9. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
@@ -451,7 +459,10 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `BOOTSTRAP.md` | 에이전트가 대상 프로젝트에 Agent Relay를 설치할 때 따르는 절차 |
 | `bootstrap/AGENTS.md` | 대상 프로젝트 루트에 둘 공통 지시문 |
 | `bootstrap/CLAUDE.md` | Claude 환경에서 단독 유지할 수 있는 동일 Agent Relay 블록 지시문 |
-| `bootstrap/.agent-relay/PROTOCOL.md` | Agent Relay 정식 최소 규칙 |
+| `bootstrap/.agent-relay/PROTOCOL.md` | Agent Relay 공통 규칙 |
+| `bootstrap/.agent-relay/DIRECTOR.md` | Director 전용 프로토콜 |
+| `bootstrap/.agent-relay/PLANNER.md` | Planner 전용 프로토콜 |
+| `bootstrap/.agent-relay/EXECUTOR.md` | Executor 전용 프로토콜 |
 | `bootstrap/.agent-relay/HOW-TO-UPDATE.md` | 설치된 Agent Relay 업데이트 절차 |
 | `bootstrap/.agent-relay/VERSION` | 설치 버전 템플릿 |
 | `bootstrap/.agent-relay/GUIDANCE.md` | 장기 지침/제약 누적 템플릿 |

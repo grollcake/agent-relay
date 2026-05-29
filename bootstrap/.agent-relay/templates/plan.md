@@ -42,9 +42,8 @@ Out of scope:
 
 - `<command or check>`: <expected result>
 
-## Director Log Action
+## Report To Director
 
-- Event to append: `PLANNED`
 - Suggested summary: <summary>
 - Artifact path: <path>
 

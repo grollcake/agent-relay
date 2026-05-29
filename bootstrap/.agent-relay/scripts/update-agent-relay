@@ -47,6 +47,9 @@ Dry run. Re-run with --apply to update:
 - CLAUDE.md Agent Relay block when present
 - .agent-relay/HOW-TO-UPDATE.md
 - .agent-relay/PROTOCOL.md
+- .agent-relay/DIRECTOR.md
+- .agent-relay/PLANNER.md
+- .agent-relay/EXECUTOR.md
 - .agent-relay/scripts/
 - .agent-relay/templates/
 - .agent-relay/VERSION
@@ -75,6 +78,9 @@ fi
 
 cp "$upstream/bootstrap/.agent-relay/HOW-TO-UPDATE.md" "$RELAY_DIR/HOW-TO-UPDATE.md"
 cp "$upstream/bootstrap/.agent-relay/PROTOCOL.md" "$RELAY_DIR/PROTOCOL.md"
+cp "$upstream/bootstrap/.agent-relay/DIRECTOR.md" "$RELAY_DIR/DIRECTOR.md"
+cp "$upstream/bootstrap/.agent-relay/PLANNER.md" "$RELAY_DIR/PLANNER.md"
+cp "$upstream/bootstrap/.agent-relay/EXECUTOR.md" "$RELAY_DIR/EXECUTOR.md"
 cp "$upstream/bootstrap/.agent-relay/scripts/"* "$RELAY_DIR/scripts/"
 cp "$upstream/bootstrap/.agent-relay/templates/"*.md "$RELAY_DIR/templates/"
 cp "$upstream/VERSION" "$RELAY_DIR/VERSION"

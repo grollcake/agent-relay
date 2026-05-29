@@ -13,11 +13,12 @@ Status: <checkpoint | complete>
 
 ## Validation
 
+- Evidence collected before fixing a user-reported defect: <reproduction, logs, failing test, code path, or n/a>
 - `<command or check>`: <result>
+- Self smoke test after fixing a user-reported defect: <command or check and result, or n/a>
 
-## Director Log Action
+## Report To Director
 
-- Event to append: `EXECUTED`
 - Suggested summary: <summary>
 - Artifact path: <path>
 
