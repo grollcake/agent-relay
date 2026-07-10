@@ -99,7 +99,7 @@ Required gates:
 
 | Next stage | Required prior event |
 | --- | --- |
-| Delegate Executor | `PLANNED` |
+| Delegate Executor | current state is `PLANNED`, `REVIEW`, or `FEEDBACK` |
 | Delegate Planner review | `EXECUTED` |
 | Request user approval | `REVIEW` |
 | Append final `CLOSE` event | explicit user approval |

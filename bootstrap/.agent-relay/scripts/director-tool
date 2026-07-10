@@ -19,7 +19,7 @@ Usage:
 
 Events: REQUEST PLANNED EXECUTED REVIEW FEEDBACK CLOSE RUN_DONE
 Gates:
-  before-execute   requires PLANNED
+  before-execute   requires PLANNED, REVIEW, or FEEDBACK
   before-review    requires EXECUTED
   before-approval  requires REVIEW
 
@@ -89,6 +89,28 @@ last_event_for_task() {
   ' "$LOG_FILE"
 }
 
+validate_transition() {
+  task_id="$1"
+  event="$2"
+  prior="$(last_event_for_task "$task_id")"
+
+  case "$prior:$event" in
+    :REQUEST|\
+    REQUEST:PLANNED|REQUEST:RUN_DONE|\
+    PLANNED:EXECUTED|\
+    EXECUTED:REVIEW|\
+    REVIEW:EXECUTED|REVIEW:FEEDBACK|REVIEW:CLOSE|\
+    FEEDBACK:EXECUTED)
+      return 0
+      ;;
+  esac
+
+  if [ -z "$prior" ]; then
+    die "invalid transition for task-id $task_id: task must start with REQUEST, got $event"
+  fi
+  die "invalid transition for task-id $task_id: $prior -> $event"
+}
+
 generate_task_id() {
   # 4 lowercase letters from /dev/urandom (POSIX target envs all provide it).
   LC_ALL=C tr -dc 'a-z' < /dev/urandom | dd bs=1 count=4 2>/dev/null
@@ -155,6 +177,9 @@ append_event() {
   expected="$(expected_role "$event")"
   [ "$role" = "$expected" ] || die "$event requires --role $expected"
 
+  require_log
+  validate_transition "$task_id" "$event"
+
   case "$event" in
     PLANNED|EXECUTED|REVIEW|CLOSE)
       [ -n "$path" ] || die "$event requires --path"
@@ -162,7 +187,6 @@ append_event() {
       ;;
   esac
 
-  require_log
   ts="$(date '+%Y-%m-%dT%H:%M:%S')"
   append_raw_event "$ts" "$task_id" "$event" "$role" "$summary" "$path"
 
@@ -185,16 +209,22 @@ gate_event() {
   done
   [ -n "$task_id" ] || die "missing --task-id"
 
-  case "$gate" in
-    before-execute) event="PLANNED" ;;
-    before-review) event="EXECUTED" ;;
-    before-approval) event="REVIEW" ;;
+  require_log
+  event="$(last_event_for_task "$task_id")"
+  [ -n "$event" ] || die "gate failed: no events for task-id $task_id"
+
+  case "$gate:$event" in
+    before-execute:PLANNED|before-execute:REVIEW|before-execute:FEEDBACK|\
+    before-review:EXECUTED|\
+    before-approval:REVIEW)
+      ;;
+    before-execute:*|before-review:*|before-approval:*)
+      die "gate failed: $gate is not allowed after $event for task-id $task_id"
+      ;;
     *) die "unknown gate: $gate" ;;
   esac
 
-  require_log
   line="$(last_matching_line "$task_id" "$event")"
-  [ -n "$line" ] || die "gate failed: missing $event for task-id $task_id"
   printf '%s\n' "$line"
 }
 
@@ -264,18 +294,7 @@ feedback_event() {
   [ -n "$task_id" ] || die "missing --task-id"
   [ -n "$summary" ] || die "missing --summary"
 
-  require_log
-
-  # FEEDBACK must follow an existing event under the same task-id
-  prior="$(last_event_for_task "$task_id")"
-  [ -n "$prior" ] || die "no prior events for task-id $task_id"
-
-  ts="$(date '+%Y-%m-%dT%H:%M:%S')"
-  append_raw_event "$ts" "$task_id" "FEEDBACK" "Director" "$summary" ""
-
-  line="$(last_matching_line "$task_id" "FEEDBACK")"
-  [ -n "$line" ] || die "append failed: matching log line not found"
-  printf '%s\n' "$line"
+  append_event FEEDBACK --task-id "$task_id" --role Director --summary "$summary"
 }
 
 status_cmd() {
