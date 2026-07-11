@@ -39,12 +39,14 @@ agent-relay 최신화해줘
 
 ### 지원 환경
 
-- macOS와 Linux: POSIX `sh` 환경
-- Windows: Git for Windows의 Git Bash
+- macOS: amd64, arm64
+- Linux: amd64, arm64
+- Windows: amd64, arm64; 운영 셸은 Git for Windows의 Git Bash
 
-Windows 네이티브 PowerShell과 cmd는 Agent Relay 스크립트 실행 환경으로
-지원하지 않는다. Windows에서는 설치, 업데이트, `director-tool`, `relay-lint`,
-회귀 테스트를 모두 Git Bash에서 실행한다.
+Agent Relay는 Go로 컴파일된 단일 네이티브 바이너리이며 설치된 프로젝트에는
+Go 런타임이 필요하지 않다. Windows 바이너리도 네이티브로 동작하지만 저장소와
+Git 작업의 기준 셸은 Git Bash로 고정한다. 소스 빌드와 테스트에는 Go 1.26 이상이
+필요하다.
 
 ## 작업 흐름
 
@@ -95,14 +97,26 @@ Standard 작업의 산출물은 `.agent-relay/runs/`에 같은 `<KEY>`로 저장
 ├── EXECUTOR.md
 ├── GUIDANCE.md
 ├── LESSON-LEARNED.md
+├── bin/
+│   └── agent-relay[.exe]
 ├── lesson-learned/
 ├── relay.log
 ├── runs/
-├── scripts/
 └── templates/
 ```
 
 `.agent-relay/`는 프로젝트 인수인계 데이터이므로 Git에 포함한다.
+
+## 개발과 바이너리 빌드
+
+```text
+go test ./...
+go run ./cmd/build-release
+```
+
+`build-release`는 `CGO_ENABLED=0`으로 지원 플랫폼 6종을 빌드하고
+`bootstrap/.agent-relay/bin/SHA256SUMS`를 갱신한다. 바이너리와 체크섬은 함께
+커밋하며 부트스트랩과 업데이트에서 무결성을 검증한다.
 
 ## 운영 원칙
 
@@ -111,8 +125,8 @@ Standard 작업의 산출물은 `.agent-relay/runs/`에 같은 `<KEY>`로 저장
 - Standard 작업은 사용자의 명시적 승인 전에는 종료하지 않는다.
 - 사용자에게 보고된 결함은 증거를 확보한 뒤 수정하고 스모크 테스트를 남긴다.
 - `.agent-relay/`에 비밀정보, 자격증명, 개인정보, 민감한 운영정보를 저장하지 않는다.
-- 커밋 전이나 업데이트 후에는 `relay-lint`로 기록 상태를 검증한다.
-- Agent Relay 자체 스크립트 변경은 `./tests/agent-relay-scripts.sh`로 회귀 테스트한다.
+- 커밋 전이나 업데이트 후에는 `.agent-relay/bin/agent-relay[.exe] lint`로 기록 상태를 검증한다.
+- Agent Relay 자체 변경은 `go test ./...`로 회귀 테스트한다.
 
 ## 더 읽기
 

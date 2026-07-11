@@ -77,21 +77,23 @@ automatically merges a dedicated task branch without separate confirmation.
 
 ## Director Tools
 
-Use `.agent-relay/scripts/director-tool` for routine state changes:
+Use `.agent-relay/bin/agent-relay` on macOS/Linux or
+`.agent-relay/bin/agent-relay.exe` on Windows. The table uses `<agent-relay>`
+for that platform-specific path.
 
 | Stage | Command |
 | --- | --- |
-| Start Standard work | `.agent-relay/scripts/director-tool new-round <slug> --summary <text>` |
-| Build delegation prompt | `.agent-relay/scripts/director-tool subagent-prompt <plan|exec|review> --task-id <id> --key <key> [--run-number <NN>]` |
-| Append event | `.agent-relay/scripts/director-tool append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]` |
-| Check next gate | `.agent-relay/scripts/director-tool gate <before-execute|before-review|before-approval> --task-id <id>` |
-| Record feedback | `.agent-relay/scripts/director-tool feedback --task-id <id> --summary <text>` |
-| Inspect open task | `.agent-relay/scripts/director-tool status [--task-id <id>]` |
-| Lint relay state | `.agent-relay/scripts/relay-lint` |
-| Merge Agent Relay block | `.agent-relay/scripts/merge-agent-block <target-file> <source-file>` |
-| Update Agent Relay | `.agent-relay/scripts/update-agent-relay --upstream <repo> [--apply]` |
+| Start Standard work | `<agent-relay> new-round <slug> --summary <text>` |
+| Build delegation prompt | `<agent-relay> prompt <plan|exec|review> --task-id <id> --key <key> [--run-number <NN>]` |
+| Append event | `<agent-relay> append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]` |
+| Check next gate | `<agent-relay> gate <before-execute|before-review|before-approval> --task-id <id>` |
+| Record feedback | `<agent-relay> feedback --task-id <id> --summary <text>` |
+| Inspect open task | `<agent-relay> status [--task-id <id>]` |
+| Lint relay state | `<agent-relay> lint` |
+| Merge Agent Relay block | `<agent-relay> merge-agent-block <target-file> <source-file>` |
+| Update Agent Relay | `<agent-relay> update --upstream <repo> [--apply]` |
 
-Run `director-tool gate ...` before delegating the next stage. If the prior
+Run `<agent-relay> gate ...` before delegating the next stage. If the prior
 event is missing, stop delegation and append or repair the Director-owned state.
 Read logs manually only when the tool is missing or fails.
 
@@ -104,4 +106,4 @@ Required gates:
 | Request user approval | `REVIEW` |
 | Append final `CLOSE` event | explicit user approval |
 
-Use `.agent-relay/scripts/relay-lint` before commits or after updates.
+Use `<agent-relay> lint` before commits or after updates.

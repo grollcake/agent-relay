@@ -7,11 +7,13 @@ that already has `.agent-relay/`.
 
 1. Read `.agent-relay/VERSION`; stop and report if it is missing.
 2. Fetch or copy the latest upstream `main` from `https://github.com/grollcake/agent-relay` into a temporary location.
-3. Run `.agent-relay/scripts/update-agent-relay --upstream <repo>` for a dry-run and inspect managed files for local customizations.
-4. If managed files can be replaced, run `.agent-relay/scripts/update-agent-relay --upstream <repo> --apply`.
-5. If updating manually, use `.agent-relay/scripts/merge-agent-block` for `AGENTS.md` and `CLAUDE.md` blocks.
-6. Run `.agent-relay/scripts/relay-lint` after the update.
-7. Record `REQUEST -> RUN_DONE` in `relay.log` with the before/after `VERSION` in the summary if the update was manual. The update script records this automatically.
+3. Select and checksum-verify the current platform binary under upstream `bootstrap/.agent-relay/bin/<os>-<arch>/`.
+4. Use the installed binary as `<agent-relay>` when available. For legacy script-only installs and all Windows updates, run the new upstream binary from its upstream or a temporary path while the current directory is the target project.
+5. Run `<agent-relay> update --upstream <repo>` for a dry-run and inspect managed files for local customizations.
+6. If managed files can be replaced, run `<agent-relay> update --upstream <repo> --apply`.
+7. If updating manually, use `<agent-relay> merge-agent-block` for `AGENTS.md` and `CLAUDE.md` blocks.
+8. Run the installed `<agent-relay> lint` after the update.
+9. Record `REQUEST -> RUN_DONE` in `relay.log` with the before/after `VERSION` in the summary if the update was manual. The update command records this automatically.
 
 ## Preserve
 

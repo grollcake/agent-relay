@@ -115,6 +115,6 @@ Commit `.agent-relay/` to Git. Do not add it to `.gitignore`. When updating,
 read `.agent-relay/HOW-TO-UPDATE.md` first. Bootstrap and update are recording
 targets, not excluded meta work.
 
-Agent Relay scripts require a POSIX `sh` environment. On Windows, the supported
-execution environment is Git for Windows Git Bash; do not run or translate the
-scripts in native PowerShell or cmd.
+Agent Relay uses the native `.agent-relay/bin/agent-relay[.exe]` Go binary and
+does not require Go in installed projects. On Windows, use Git for Windows Git
+Bash as the operational shell for Agent Relay and Git workflows.

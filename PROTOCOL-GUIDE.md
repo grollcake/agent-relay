@@ -7,10 +7,10 @@
 
 Agent Relay는 **Director / Planner / Executor 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다. 프로젝트 안에 작업 분류, 이벤트 타임라인, 라운드 산출물, 작업 맥락 전달 표준을 남기는 것입니다.
 
-지원 실행 환경은 macOS/Linux의 POSIX `sh`와 Windows의 Git for Windows
-Git Bash입니다. Windows 네이티브 PowerShell과 cmd에서는 Agent Relay
-스크립트를 실행하거나 즉석 변환하지 않습니다. 부트스트랩, 업데이트,
-Director 도구와 검증 명령은 모두 Git Bash에서 실행합니다.
+Agent Relay는 macOS/Linux/Windows의 amd64·arm64용 단일 Go 바이너리로
+배포하며 설치된 프로젝트에는 Go 런타임이 필요하지 않습니다. Windows에서도
+네이티브로 동작하지만 저장소와 Git 작업의 운영 셸은 Git for Windows Git
+Bash로 고정합니다.
 
 ## 2. 에이전트 팀 구성
 
@@ -129,10 +129,10 @@ Director는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판�
 - 각 `RUN`은 변경 파일, 변경 요약, 테스트/검증, 미해결 리스크를 기록합니다.
 - `relay.log`는 `REQUEST`, `PLANNED`, `EXECUTED`, `REVIEW`, `FEEDBACK`, `CLOSE`, `RUN_DONE` 이벤트를 추가-전용으로 남기고 `path`로 산출물을 가리킵니다.
 - 산출물 작성과 `relay.log` 이벤트 추가는 별개의 필수 작업입니다. Planner와 Executor는 산출물 완료와 제안 summary를 Director에게 통지할 뿐 `relay.log`를 쓰거나 기록 완료를 주장하지 않습니다. 각 단계는 Director가 해당 이벤트를 추가하고 확인한 뒤에만 완료된 것으로 봅니다.
-- `.agent-relay/scripts/director-tool`는 Director-owned 도구입니다. Director는 routine 흐름에서 `new-round`, `feedback`, `append`, `gate`, `status`, `subagent-prompt`를 사용합니다.
-- 모든 `relay.log` 이벤트는 Director가 `director-tool append`로 추가합니다. 도구가 없거나 실패할 때만 직접 로그를 읽고 수동으로 복구합니다.
-- Director는 다음 단계 위임 전에 `director-tool gate ...`로 직전 단계 이벤트를 확인합니다. 확인하지 못하면 다음 단계 위임을 중단하고 Director 소유의 로그 추가 또는 수정 작업을 완료합니다.
-- 커밋 전이나 업데이트 후에는 `.agent-relay/scripts/relay-lint`로 relay 상태를 검증합니다.
+- `.agent-relay/bin/agent-relay[.exe]`는 Director-owned 도구입니다. Director는 routine 흐름에서 `new-round`, `feedback`, `append`, `gate`, `status`, `prompt`를 사용합니다.
+- 모든 `relay.log` 이벤트는 Director가 `agent-relay append`로 추가합니다. 도구가 없거나 실패할 때만 직접 로그를 읽고 수동으로 복구합니다.
+- Director는 다음 단계 위임 전에 `agent-relay gate ...`로 직전 단계 이벤트를 확인합니다. 확인하지 못하면 다음 단계 위임을 중단하고 Director 소유의 로그 추가 또는 수정 작업을 완료합니다.
+- 커밋 전이나 업데이트 후에는 `agent-relay lint`로 relay 상태를 검증합니다.
 
 필수 게이트:
 
@@ -187,7 +187,7 @@ Planner/Executor는 가능하면 같은 컨텍스트를 유지하되, 다음 중
 
 ### 위임 시 필수 필드
 
-위임 프롬프트는 Director가 `director-tool subagent-prompt` 출력에 명시 요구사항만 덧붙여 만듭니다. 성공 기준·검증·리스크는 Planner가 `PLAN`에서 정의하고 Executor와 검토자는 이를 따릅니다. 하위 AI는 `director-tool`로 상태를 변경하거나 `relay.log`를 쓰지 않고, 완료와 제안 summary만 Director에게 알립니다.
+위임 프롬프트는 Director가 `agent-relay prompt` 출력에 명시 요구사항만 덧붙여 만듭니다. 성공 기준·검증·리스크는 Planner가 `PLAN`에서 정의하고 Executor와 검토자는 이를 따릅니다. 하위 AI는 `agent-relay`로 상태를 변경하거나 `relay.log`를 쓰지 않고, 완료와 제안 summary만 Director에게 알립니다.
 
 ### 보고 시 필수 필드
 
@@ -239,12 +239,8 @@ project-root/
     ├── GUIDANCE.md             # 장기 지침/제약 누적
     ├── LESSON-LEARNED.md       # lesson-learned/ 실제 기록 인덱스
     ├── relay.log
-    ├── scripts/                 # Director-owned 실행 도구
-    │   ├── artifact-check        # 산출물 경로/완료 상태 공통 검증
-    │   ├── director-tool         # task 생성, 이벤트 추가, gate, 위임 프롬프트 CLI
-    │   ├── relay-lint            # relay 상태/산출물 검증
-    │   ├── merge-agent-block     # AGENTS/CLAUDE Agent Relay 블록 병합
-    │   └── update-agent-relay    # 설치된 Agent Relay 업데이트 보조
+    ├── bin/
+    │   └── agent-relay[.exe]     # 현재 플랫폼용 단일 Go CLI
     ├── lesson-learned/         # 완료 작업에서 얻은 해결 지식 기록
     │   └── .gitkeep
     ├── runs/                   # 라운드 산출물(PLAN/RUN/REVIEW/CLOSE)
@@ -272,11 +268,7 @@ project-root/
 | `.agent-relay/GUIDANCE.md` | 누적 관리 | 세션을 넘어 유지할 사용자 지침, 제약, 금지사항을 담는 문서입니다. |
 | `.agent-relay/LESSON-LEARNED.md` | 누적 관리 | `.agent-relay/lesson-learned/`에 저장된 실제 기록의 인덱스입니다. |
 | `.agent-relay/relay.log` | 필수 | 작업 이벤트 로그입니다 (추가 전용) |
-| `.agent-relay/scripts/artifact-check` | 목표 필수 | PLAN/RUN/REVIEW/CLOSE 경로와 미작성 placeholder, 필수 완료 필드를 검사합니다. |
-| `.agent-relay/scripts/director-tool` | 목표 필수 | task 생성, 이벤트 추가, 단계 gate, 상태 요약, 위임 프롬프트 생성을 처리하는 기본 CLI입니다. |
-| `.agent-relay/scripts/relay-lint` | 목표 권장 | relay 상태, 이벤트/역할 쌍, 산출물 경로, checkpoint RUN 누락을 검사합니다. |
-| `.agent-relay/scripts/merge-agent-block` | 목표 권장 | `AGENTS.md`/`CLAUDE.md`의 Agent Relay 블록만 교체하거나 추가합니다. |
-| `.agent-relay/scripts/update-agent-relay` | 목표 권장 | `HOW-TO-UPDATE.md` 절차를 보조하는 dry-run/apply 업데이트 CLI입니다. |
+| `.agent-relay/bin/agent-relay[.exe]` | 목표 필수 | 상태 변경, gate, 위임 프롬프트, 산출물·로그 검증, 지시 블록 병합, 업데이트를 처리하는 현재 플랫폼용 Go CLI입니다. |
 | `.agent-relay/lesson-learned/` | 누적 관리 | 완료된 작업에서 얻은 재사용 가능한 해결 지식이 쌓이는 디렉토리입니다. |
 | `.agent-relay/runs/` | 목표 필수 | `Standard` 작업의 라운드 산출물이 쌓이는 디렉토리입니다. |
 | `.agent-relay/templates/` | 목표 권장 | 산출물·누적 문서 작성 형식 예시입니다. |
@@ -391,8 +383,8 @@ Agent Relay에 합류할 때의 읽기 순서는 다음과 같습니다.
 2. 기본 upstream `https://github.com/grollcake/agent-relay`의 최신 `main`을 임시 위치에 가져와 현재 프로젝트와 비교합니다.
 3. `AGENTS.md`는 최신 `bootstrap/AGENTS.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체하거나 보강합니다.
 4. `CLAUDE.md`가 존재하면 최신 `bootstrap/CLAUDE.md`의 동일 블록과 비교해 Agent Relay 블록만 교체하거나 보강합니다.
-5. `.agent-relay/scripts/update-agent-relay --upstream <repo>`로 dry-run을 확인하고, managed 파일의 로컬 수정을 덮어써도 될 때만 `--apply`를 붙입니다.
-6. `.agent-relay/HOW-TO-UPDATE.md`, `.agent-relay/PROTOCOL.md`, 역할별 프로토콜, `.agent-relay/scripts/`, `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
+5. `.agent-relay/bin/agent-relay[.exe] update --upstream <repo>`로 dry-run을 확인하고, managed 파일의 로컬 수정을 덮어써도 될 때만 `--apply`를 붙입니다. Windows에서는 새 upstream 바이너리를 임시 경로에서 실행합니다.
+6. `.agent-relay/HOW-TO-UPDATE.md`, `.agent-relay/PROTOCOL.md`, 역할별 프로토콜, `.agent-relay/bin/agent-relay[.exe]`, `.agent-relay/templates/`는 로컬 수정이 없거나 안전히 구분될 때 최신 upstream으로 갱신합니다.
 7. `.agent-relay/GUIDANCE.md`, `.agent-relay/lesson-learned/`, `.agent-relay/relay.log`, `.agent-relay/runs/`는 덮어쓰지 않습니다.
 8. `.agent-relay/LESSON-LEARNED.md`는 프로젝트별 기록 인덱스이므로 덮어쓰지 않습니다.
 9. 업데이트가 성공하면 `.agent-relay/VERSION`을 최신 upstream의 `VERSION` 값으로 갱신합니다.
@@ -475,11 +467,8 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `bootstrap/.agent-relay/GUIDANCE.md` | 장기 지침/제약 누적 템플릿 |
 | `bootstrap/.agent-relay/LESSON-LEARNED.md` | `lesson-learned/` 실제 기록 인덱스 |
 | `bootstrap/.agent-relay/relay.log` | 초기 로그 템플릿 |
-| `bootstrap/.agent-relay/scripts/artifact-check` | 산출물 완료 상태 공통 검증 CLI |
-| `bootstrap/.agent-relay/scripts/director-tool` | Director-owned 기본 CLI |
-| `bootstrap/.agent-relay/scripts/relay-lint` | relay 상태 검증 CLI |
-| `bootstrap/.agent-relay/scripts/merge-agent-block` | Agent Relay 블록 병합 CLI |
-| `bootstrap/.agent-relay/scripts/update-agent-relay` | 설치된 Agent Relay 업데이트 보조 CLI |
+| `bootstrap/.agent-relay/bin/<os>-<arch>/agent-relay[.exe]` | 플랫폼별 Go CLI 바이너리 |
+| `bootstrap/.agent-relay/bin/SHA256SUMS` | 플랫폼별 바이너리 무결성 체크섬 |
 | `bootstrap/.agent-relay/lesson-learned/` | 완료 작업에서 얻은 해결 지식 기록 디렉토리 |
 | `bootstrap/.agent-relay/templates/guidance.md` | `GUIDANCE.md` 누적 지침 형식 |
 | `bootstrap/.agent-relay/templates/lesson-learned.md` | 해결 지식 기록 형식 |
@@ -487,6 +476,8 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `bootstrap/.agent-relay/templates/run.md` | `RUN-NN` 산출물 형식 |
 | `bootstrap/.agent-relay/templates/review.md` | `REVIEW-NN` 산출물 형식 |
 | `bootstrap/.agent-relay/templates/close.md` | `CLOSE` 산출물 형식 |
+| `cmd/agent-relay/`, `internal/relay/` | Go CLI 진입점과 핵심 구현 |
+| `cmd/build-release/` | 지원 플랫폼 바이너리와 체크섬 빌드 도구 |
 
 ## 21. 정리
 

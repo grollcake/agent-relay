@@ -1,1 +1,3 @@
 * text=auto eol=lf
+bootstrap/.agent-relay/bin/** binary
+bootstrap/.agent-relay/bin/SHA256SUMS text eol=lf diff

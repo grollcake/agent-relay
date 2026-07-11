@@ -11,9 +11,8 @@
 
 부트스트랩을 시작하기 전, 사용자 프로젝트(이하 `<project>`)의 다음 상태를 확인합니다.
 
-- 현재 OS와 셸. Windows에서는 Git for Windows의 Git Bash여야 합니다.
-  PowerShell이나 cmd 세션이면 부트스트랩 스크립트를 실행하지 말고 Git Bash로
-  전환합니다.
+- 현재 OS와 아키텍처(`darwin|linux|windows`, `amd64|arm64`) 및 셸. Windows의
+  운영 셸은 Git for Windows의 Git Bash입니다.
 - `<project>/AGENTS.md` 존재 여부
 - `<project>/.agent-relay/` 디렉토리 존재 여부
 - `<project>/.agent-relay/VERSION` 존재 여부 (이미 설치된 경우 업데이트 기준)
@@ -62,9 +61,24 @@
 - 동일한 Agent Relay 블록이 이미 있으면 중복 추가하지 않습니다.
 - `CLAUDE.md`가 없고 현재 Claude Code에서 실행 중이지 않으면 새로 생성하지 않습니다.
 
-### 4. `.agent-relay/` 디렉토리 복사
+### 4. `.agent-relay/` 디렉토리와 바이너리 복사
 
-`bootstrap/.agent-relay/`를 통째로 `<project>/.agent-relay/`로 복사합니다.
+1. `bootstrap/.agent-relay/`에서 `bin/`을 제외한 내용을
+   `<project>/.agent-relay/`로 복사합니다.
+2. 현재 플랫폼 키를 `<os>-<arch>`로 정합니다. 지원 키는
+   `darwin-amd64`, `darwin-arm64`, `linux-amd64`, `linux-arm64`,
+   `windows-amd64`, `windows-arm64`입니다.
+3. macOS/Linux에서는
+   `bootstrap/.agent-relay/bin/<os>-<arch>/agent-relay`를
+   `<project>/.agent-relay/bin/agent-relay`로 복사하고 실행 권한을 줍니다.
+4. Windows에서는
+   `bootstrap/.agent-relay/bin/windows-<arch>/agent-relay.exe`를
+   `<project>/.agent-relay/bin/agent-relay.exe`로 복사합니다.
+5. `bootstrap/.agent-relay/bin/SHA256SUMS`에서 선택한 플랫폼 항목을 확인해
+   복사된 바이너리의 SHA-256을 검증하고, `SHA256SUMS`도 대상 `bin/`에
+   복사합니다.
+6. 대상 프로젝트에는 선택한 바이너리 하나만 둡니다. Go 런타임이나 소스는
+   복사하지 않습니다.
 
 ### 5. 초기 `relay.log` 기록
 
@@ -137,11 +151,7 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 | `.agent-relay/DIRECTOR.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/PLANNER.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/EXECUTOR.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
-| `.agent-relay/scripts/artifact-check` | 산출물 경로, 미작성 placeholder, 필수 완료 필드를 검증하는 공통 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
-| `.agent-relay/scripts/director-tool` | task 생성, 이벤트 추가, 단계 gate, 상태 요약, 위임 프롬프트를 처리하는 Director-owned CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
-| `.agent-relay/scripts/relay-lint` | relay 상태 검증 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
-| `.agent-relay/scripts/merge-agent-block` | Agent Relay 블록 병합 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
-| `.agent-relay/scripts/update-agent-relay` | 설치된 Agent Relay 업데이트 보조 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
+| `.agent-relay/bin/agent-relay[.exe]` | 현재 OS/아키텍처에 맞는 최신 upstream Go 바이너리로 교체 |
 | `.agent-relay/templates/` | 템플릿 파일은 최신 upstream과 비교해 갱신 |
 | `.agent-relay/VERSION` | 성공 후 최신 upstream의 `VERSION` 값으로 갱신 |
 | `CLAUDE.md` | 존재하는 경우 최신 `bootstrap/CLAUDE.md`의 `<agent-relay-rules>...</agent-relay-rules>` 블록과 비교해 현재 파일의 Agent Relay 블록만 교체 또는 보강 |
@@ -151,7 +161,19 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 | `.agent-relay/runs/` | 덮어쓰지 않음 |
 | `.agent-relay/lesson-learned/` | 덮어쓰지 않음 |
 
-### 4. `AGENTS.md` 머지 규칙
+### 4. 바이너리 업데이트 규칙
+
+- macOS/Linux는 `.agent-relay/bin/agent-relay`, Windows는
+  `.agent-relay/bin/agent-relay.exe` 하나만 유지합니다.
+- 새 upstream의 `bootstrap/.agent-relay/bin/<os>-<arch>/`에서 현재 플랫폼과
+  일치하는 바이너리를 선택합니다.
+- Windows에서 실행 중인 설치 바이너리는 자신을 교체할 수 없으므로, 새
+  upstream 바이너리를 임시 경로에서 실행하여 `update --apply`를 수행합니다.
+- `0.10.x` 이하처럼 바이너리가 없는 기존 설치도 새 upstream의 플랫폼
+  바이너리를 대상 프로젝트 디렉토리에서 실행하여 `update --apply`합니다.
+- 성공한 업데이트는 기존 `.agent-relay/scripts/`가 있으면 제거합니다.
+
+### 5. `AGENTS.md` 머지 규칙
 
 `AGENTS.md`는 프로젝트별 지시가 가장 많이 섞이는 파일이므로 다음 원칙을 따릅니다.
 
@@ -160,7 +182,7 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 - Agent Relay 포인터만 있고 블록이 없으면 최신 블록을 추가하되 중복 문장은 제거합니다.
 - Agent Relay 블록 안에 프로젝트 고유 지시가 섞여 있어 자동 분리가 어렵다면 파일을 바꾸지 않고 충돌로 보고합니다.
 
-### 5. `relay.log` 기록
+### 6. `relay.log` 기록
 
 업데이트 완료 후 Director는 `relay.log`에 `REQUEST → RUN_DONE`을 추가합니다. 메타 작업이라 기록을 생략하지 않습니다. `summary`에 이전·이후 `VERSION`을 포함합니다.
 
@@ -171,7 +193,7 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 2026-05-26T00:12:00 | kfnp | RUN_DONE | Director | Agent Relay updated to 0.34
 ```
 
-### 6. 완료 보고
+### 7. 완료 보고
 
 업데이트가 끝나면 기본적으로 버전 변화, 갱신 범주, 수동 확인 필요 여부만
 짧게 보고합니다. 변경 파일 전체 목록과 보존 파일 목록은 요청받거나 충돌이

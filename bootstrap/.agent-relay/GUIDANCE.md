@@ -57,8 +57,8 @@ Examples not to record:
   `FEEDBACK` after any review is a normal pipeline step.
 - Planner and Executor notify Director when artifacts are complete and provide a
   suggested event summary; only Director writes `relay.log`.
-- `director-tool` is Director-owned; delegates must not use it to mutate relay
-  state.
+- The `agent-relay` binary is Director-owned; delegates must not use its
+  state-mutating commands.
 - Keep delegation prompts brief: pass explicit constraints and source/artifact
   paths, not copied context or derived criteria. Planner defines criteria and
   risks in `PLAN`; Executor and the reviewer follow `PLAN`.
