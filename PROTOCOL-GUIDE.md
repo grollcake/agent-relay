@@ -7,6 +7,11 @@
 
 Agent Relay는 **Director / Planner / Executor 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다. 프로젝트 안에 작업 분류, 이벤트 타임라인, 라운드 산출물, 작업 맥락 전달 표준을 남기는 것입니다.
 
+지원 실행 환경은 macOS/Linux의 POSIX `sh`와 Windows의 Git for Windows
+Git Bash입니다. Windows 네이티브 PowerShell과 cmd에서는 Agent Relay
+스크립트를 실행하거나 즉석 변환하지 않습니다. 부트스트랩, 업데이트,
+Director 도구와 검증 명령은 모두 Git Bash에서 실행합니다.
+
 ## 2. 에이전트 팀 구성
 
 저장소 수준 지시가 다른 절차를 지정하지 않는 한, 표준 구현 작업에는 먼저 **Director / Planner / Executor 에이전트 팀**을 구성하고 Director / Planner / Executor 프로토콜을 적용합니다. **Director (허브)**는 사용자 소통, 분류, 범위/위험 결정, 위임, 결과 해석, 최종 보고를 담당합니다. Director는 Planner/Executor에게 백그라운드로 작업을 위임한 뒤 즉시 짧은 상태를 사용자에게 반환하고, 위임 중에도 새 사용자 요구에 대응 가능한 상태를 유지합니다. Planner와 Executor는 Director를 통해서만 통신합니다.
@@ -116,7 +121,7 @@ Director는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판�
 - `task-id`는 `relay.log` 이벤트 식별자이고, `<YYYYMMDD>-<HHMM>-<SLUG>`는 `.agent-relay/runs/` 산출물 파일 키입니다. 같은 Standard 작업에서는 `task-id` 하나와 파일 키 하나를 함께 씁니다.
 - 같은 작업의 모든 라운드 산출물은 같은 `<YYYYMMDD>-<HHMM>-<SLUG>` 키를 씁니다.
 - 산출물은 `.agent-relay/templates/plan.md`, `run.md`, `review.md`, `close.md` 형식을 따릅니다.
-- Executor는 긴 검증 전 `RUN-<NN>.md`를 checkpoint로 먼저 저장할 수 있습니다. TODO가 남은 checkpoint RUN은 완료가 아니며, Director는 TODO가 없어질 때까지 `EXECUTED`를 기록하지 않습니다.
+- Executor는 긴 검증 전 `RUN-<NN>.md`를 checkpoint로 먼저 저장할 수 있습니다. TODO나 `<...>` placeholder가 남았거나 `Status: complete`가 아닌 RUN은 완료가 아니며, Director는 완료 검증 전 `EXECUTED`를 기록하지 않습니다.
 - Executor는 절대 `CLOSE`을 쓰지 않습니다.
 - `REVIEW`는 사용자 결정을 위한 증거이지 승인이 아닙니다. Planner는 완료를 승인하거나 `CLOSE` 산출물을 작성하지 않습니다.
 - **사용자가 명시적으로 승인한 뒤에만 Director가 `CLOSE` 산출물을 작성하고 `CLOSE` 이벤트를 기록하여 작업을 종료할 수 있습니다.**
@@ -235,6 +240,7 @@ project-root/
     ├── LESSON-LEARNED.md       # lesson-learned/ 실제 기록 인덱스
     ├── relay.log
     ├── scripts/                 # Director-owned 실행 도구
+    │   ├── artifact-check        # 산출물 경로/완료 상태 공통 검증
     │   ├── director-tool         # task 생성, 이벤트 추가, gate, 위임 프롬프트 CLI
     │   ├── relay-lint            # relay 상태/산출물 검증
     │   ├── merge-agent-block     # AGENTS/CLAUDE Agent Relay 블록 병합
@@ -266,6 +272,7 @@ project-root/
 | `.agent-relay/GUIDANCE.md` | 누적 관리 | 세션을 넘어 유지할 사용자 지침, 제약, 금지사항을 담는 문서입니다. |
 | `.agent-relay/LESSON-LEARNED.md` | 누적 관리 | `.agent-relay/lesson-learned/`에 저장된 실제 기록의 인덱스입니다. |
 | `.agent-relay/relay.log` | 필수 | 작업 이벤트 로그입니다 (추가 전용) |
+| `.agent-relay/scripts/artifact-check` | 목표 필수 | PLAN/RUN/REVIEW/CLOSE 경로와 미작성 placeholder, 필수 완료 필드를 검사합니다. |
 | `.agent-relay/scripts/director-tool` | 목표 필수 | task 생성, 이벤트 추가, 단계 gate, 상태 요약, 위임 프롬프트 생성을 처리하는 기본 CLI입니다. |
 | `.agent-relay/scripts/relay-lint` | 목표 권장 | relay 상태, 이벤트/역할 쌍, 산출물 경로, checkpoint RUN 누락을 검사합니다. |
 | `.agent-relay/scripts/merge-agent-block` | 목표 권장 | `AGENTS.md`/`CLAUDE.md`의 Agent Relay 블록만 교체하거나 추가합니다. |
@@ -468,6 +475,7 @@ Follow Agent Relay. If this is a new or resumed session, follow the Agent Relay 
 | `bootstrap/.agent-relay/GUIDANCE.md` | 장기 지침/제약 누적 템플릿 |
 | `bootstrap/.agent-relay/LESSON-LEARNED.md` | `lesson-learned/` 실제 기록 인덱스 |
 | `bootstrap/.agent-relay/relay.log` | 초기 로그 템플릿 |
+| `bootstrap/.agent-relay/scripts/artifact-check` | 산출물 완료 상태 공통 검증 CLI |
 | `bootstrap/.agent-relay/scripts/director-tool` | Director-owned 기본 CLI |
 | `bootstrap/.agent-relay/scripts/relay-lint` | relay 상태 검증 CLI |
 | `bootstrap/.agent-relay/scripts/merge-agent-block` | Agent Relay 블록 병합 CLI |

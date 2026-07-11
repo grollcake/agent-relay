@@ -12,9 +12,9 @@ Write `.agent-relay/runs/<KEY>-RUN-<NN>.md` from `templates/run.md`. The `RUN`
 records changed files or behavior, validation, success criteria status,
 unresolved risks, and out-of-scope items returned to Director.
 
-Checkpoint `RUN` files are allowed before long validation. `Status: checkpoint`
-or TODO fields mean the run is incomplete; report completion only after the
-artifact is complete.
+Checkpoint `RUN` files are allowed before long validation. `Status: checkpoint`,
+TODO fields, or unresolved `<...>` template placeholders mean the run is
+incomplete. Set exactly `Status: complete` before reporting completion.
 
 ## User-Reported Defects
 

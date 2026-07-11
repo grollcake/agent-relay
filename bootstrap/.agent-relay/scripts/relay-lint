@@ -45,9 +45,39 @@ check_agent_blocks() {
   fi
 }
 
+trim_field() {
+  printf '%s\n' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+check_artifacts() {
+  [ -f "$LOG_FILE" ] || return 0
+
+  line_number=0
+  while IFS='|' read -r timestamp task event role summary path extra; do
+    line_number=$((line_number + 1))
+    task=$(trim_field "$task")
+    event=$(trim_field "$event")
+    path=$(trim_field "$path")
+
+    [ -z "$extra" ] || continue
+    [ -n "$path" ] || continue
+
+    case "$event" in
+      PLANNED|EXECUTED|REVIEW|CLOSE)
+        if ! message=$("$RELAY_DIR/scripts/artifact-check" "$event" "$path" "$task" 2>&1); then
+          err "relay log line $line_number: $message"
+        fi
+        ;;
+      *)
+        [ -f "$PROJECT_DIR/$path" ] || err "artifact path not found on line $line_number: $path"
+        ;;
+    esac
+  done < "$LOG_FILE"
+}
+
 check_log() {
   [ -f "$LOG_FILE" ] || return 0
-  awk -F'|' -v project="$PROJECT_DIR" '
+  awk -F'|' '
     function trim(value) {
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
       return value
@@ -83,11 +113,13 @@ check_log() {
     }
     function artifact_key(path, event, value) {
       value = path
+      if (event == "PLANNED") sub(/-PLAN\.md$/, "", value)
       if (event == "EXECUTED") sub(/-RUN-[0-9][0-9]\.md$/, "", value)
       if (event == "REVIEW") sub(/-REVIEW-[0-9][0-9]\.md$/, "", value)
+      if (event == "CLOSE") sub(/-CLOSE\.md$/, "", value)
       return value
     }
-    NF < 4 {
+    NF < 4 || NF > 6 {
       if (trim($0) != "") {
         print "ERROR: malformed relay log line " NR
         bad = 1
@@ -127,17 +159,16 @@ check_log() {
         print "ERROR: missing path on line " NR ": " event
         bad = 1
       }
-      if (path != "" && system("[ -f \"" project "/" path "\" ]") != 0) {
-        print "ERROR: artifact path not found on line " NR ": " path
-        bad = 1
+      if (task != "" && event == "PLANNED" && path != "") {
+        task_key[task] = artifact_key(path, event)
       }
-      if (event == "EXECUTED" && path != "" && system("grep -Eq '\''(^Status:[[:space:]]*checkpoint([[:space:]]|$)|TODO)'\'' \"" project "/" path "\"") == 0) {
-        print "ERROR: EXECUTED artifact still checkpoint/TODO on line " NR ": " path
-        bad = 1
-      }
-
       if (task != "" && event == "EXECUTED" && path != "") {
         round = artifact_round(path, event)
+        key = artifact_key(path, event)
+        if (key != task_key[task]) {
+          print "ERROR: RUN artifact key does not match PLAN on line " NR " for task-id " task
+          bad = 1
+        }
         if (round == "") {
           print "ERROR: invalid RUN artifact name on line " NR ": " path
           bad = 1
@@ -164,9 +195,17 @@ check_log() {
             print "ERROR: artifact key mismatch on line " NR " for task-id " task
             bad = 1
           }
+          if (key != task_key[task]) {
+            print "ERROR: REVIEW artifact key does not match PLAN on line " NR " for task-id " task
+            bad = 1
+          }
           delete pending_round[task]
           delete pending_key[task]
         }
+      }
+      if (task != "" && event == "CLOSE" && path != "" && artifact_key(path, event) != task_key[task]) {
+        print "ERROR: CLOSE artifact key does not match PLAN on line " NR " for task-id " task
+        bad = 1
       }
     }
     END {
@@ -193,14 +232,17 @@ require_file "$RELAY_DIR/GUIDANCE.md"
 require_file "$RELAY_DIR/LESSON-LEARNED.md"
 require_file "$LOG_FILE"
 require_file "$RELAY_DIR/scripts/director-tool"
+require_file "$RELAY_DIR/scripts/artifact-check"
 require_dir "$RELAY_DIR/templates"
 require_dir "$RELAY_DIR/runs"
 require_dir "$RELAY_DIR/lesson-learned"
 
 [ -x "$RELAY_DIR/scripts/director-tool" ] && ok "director-tool is executable" || err "director-tool is not executable"
+[ -x "$RELAY_DIR/scripts/artifact-check" ] && ok "artifact-check is executable" || err "artifact-check is not executable"
 [ ! -e "$RELAY_DIR/protocol-guard" ] && ok "legacy protocol-guard absent" || err "legacy protocol-guard should be moved to scripts/director-tool"
 
 check_agent_blocks
+check_artifacts
 check_log
 
 if [ "$errors" -gt 0 ]; then

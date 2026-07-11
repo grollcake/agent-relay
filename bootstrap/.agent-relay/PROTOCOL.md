@@ -57,10 +57,15 @@ Store artifacts in `.agent-relay/runs/` using one stable
 - `.agent-relay/runs/<YYYYMMDD>-<HHMM>-<SLUG>-CLOSE.md`
 
 `<NN>` starts at `01`. Never overwrite an older round except current-run
-feedback before approval. Checkpoint `RUN` files are allowed before long
-validation, but TODOs mean incomplete. Each `RUN` records changed files, change
-summary, validation, and unresolved risks. Use the matching template in
-`.agent-relay/templates/` for every artifact.
+feedback before approval. An artifact is incomplete while any template
+placeholder (`<...>`) remains; a `RUN` is also incomplete while any TODO
+remains. A completed `RUN` must contain exactly `Status: complete`, and a
+completed `REVIEW` must set `Result` to
+`ready-for-user-decision` or `blockers`. Each `RUN` records changed files,
+change summary, validation, and unresolved risks. Use the matching template in
+`.agent-relay/templates/` for every artifact. Artifact `Task ID` values must
+match `relay.log`; all artifacts for a task use the PLAN key, and each REVIEW
+round must match its immediately preceding RUN round.
 
 For user-reported defects, Director passes the report to Executor; Executor
 records evidence before fixing and a self smoke test after fixing.
@@ -109,3 +114,7 @@ three to five user manual checks, and the `REVIEW` path.
 Commit `.agent-relay/` to Git. Do not add it to `.gitignore`. When updating,
 read `.agent-relay/HOW-TO-UPDATE.md` first. Bootstrap and update are recording
 targets, not excluded meta work.
+
+Agent Relay scripts require a POSIX `sh` environment. On Windows, the supported
+execution environment is Git for Windows Git Bash; do not run or translate the
+scripts in native PowerShell or cmd.

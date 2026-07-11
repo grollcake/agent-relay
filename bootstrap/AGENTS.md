@@ -25,5 +25,7 @@ only your role file:
 6. Keep older `.agent-relay/runs/` rounds append-only; update `GUIDANCE.md` and
    `lesson-learned/` only after user approval; never store secrets or sensitive
    data in `.agent-relay/`.
+7. Agent Relay scripts require POSIX `sh`. On Windows, run them in Git for
+   Windows Git Bash; native PowerShell and cmd are not supported.
 
 </agent-relay-rules>

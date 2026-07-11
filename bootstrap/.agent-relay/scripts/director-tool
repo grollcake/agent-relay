@@ -112,7 +112,7 @@ validate_transition() {
 }
 
 generate_task_id() {
-  # 4 lowercase letters from /dev/urandom (POSIX target envs all provide it).
+  # Supported macOS, Linux, and Git Bash environments provide /dev/urandom.
   LC_ALL=C tr -dc 'a-z' < /dev/urandom | dd bs=1 count=4 2>/dev/null
   printf '\n'
 }
@@ -133,20 +133,40 @@ append_raw_event() {
   fi
 }
 
+validate_log_field() {
+  name="$1"
+  value="$2"
+  if printf '%s' "$value" | LC_ALL=C grep -q '[|[:cntrl:]]'; then
+    die "$name must not contain | or control characters"
+  fi
+}
+
 validate_artifact_ready_for_event() {
   event="$1"
   path="$2"
+  task_id="$3"
+  "$SCRIPT_DIR/artifact-check" "$event" "$path" "$task_id"
 
-  case "$event" in
-    PLANNED|EXECUTED|REVIEW|CLOSE)
-      [ -f "$path" ] || die "$event path not found: $path"
+  [ "$event" = "PLANNED" ] && return 0
+
+  planned_line="$(last_matching_line "$task_id" PLANNED)"
+  planned_path="$(printf '%s\n' "$planned_line" | awk -F'|' '{ value=$6; gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); print value }')"
+  key="${planned_path%-PLAN.md}"
+
+  case "$event:$path" in
+    EXECUTED:"$key"-RUN-[0-9][0-9].md|\
+    REVIEW:"$key"-REVIEW-[0-9][0-9].md|\
+    CLOSE:"$key"-CLOSE.md)
       ;;
+    *) die "$event artifact key does not match PLAN: $path" ;;
   esac
 
-  if [ "$event" = "EXECUTED" ]; then
-    if grep -Eq '(^Status:[[:space:]]*checkpoint([[:space:]]|$)|TODO)' "$path"; then
-      die "EXECUTED requires complete RUN: resolve checkpoint/TODO fields in $path"
-    fi
+  if [ "$event" = "REVIEW" ]; then
+    executed_line="$(last_matching_line "$task_id" EXECUTED)"
+    executed_path="$(printf '%s\n' "$executed_line" | awk -F'|' '{ value=$6; gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); print value }')"
+    round="${executed_path##*-RUN-}"
+    [ "$path" = "$key-REVIEW-$round" ] || \
+      die "REVIEW round does not match the latest RUN: $path"
   fi
 }
 
@@ -174,6 +194,8 @@ append_event() {
   [ -n "$task_id" ] || die "missing --task-id"
   [ -n "$role" ] || die "missing --role"
   [ -n "$summary" ] || die "missing --summary"
+  validate_log_field "--summary" "$summary"
+  validate_log_field "--path" "$path"
   expected="$(expected_role "$event")"
   [ "$role" = "$expected" ] || die "$event requires --role $expected"
 
@@ -183,7 +205,7 @@ append_event() {
   case "$event" in
     PLANNED|EXECUTED|REVIEW|CLOSE)
       [ -n "$path" ] || die "$event requires --path"
-      validate_artifact_ready_for_event "$event" "$path"
+      validate_artifact_ready_for_event "$event" "$path" "$task_id"
       ;;
   esac
 
@@ -246,6 +268,7 @@ new_round() {
     esac
   done
   [ -n "$summary" ] || die "missing --summary"
+  validate_log_field "--summary" "$summary"
 
   # slug must be lowercase kebab-case (a-z, 0-9, -)
   case "$slug" in
@@ -418,7 +441,7 @@ PLAN: \`.agent-relay/runs/${key}-PLAN.md\` — implement §Plan steps verbatim; 
 
 Artifact: \`.agent-relay/runs/${key}-RUN-${run_number}.md\` (template: \`.agent-relay/templates/run.md\`).
 
-You may save the RUN as a checkpoint before long validation. TODO fields mean incomplete. Return ambiguity to Director rather than guessing. Report ≤200 words with validation results, blockers or risks, artifact path, and suggested summary.
+You may save the RUN as a checkpoint before long validation. TODO fields or unresolved \`<...>\` placeholders mean incomplete; set exactly \`Status: complete\` before reporting completion. Return ambiguity to Director rather than guessing. Report ≤200 words with validation results, blockers or risks, artifact path, and suggested summary.
 EOF
       ;;
     *) die "unknown role: $role (plan|review|exec)" ;;

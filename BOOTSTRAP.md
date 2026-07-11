@@ -11,6 +11,9 @@
 
 부트스트랩을 시작하기 전, 사용자 프로젝트(이하 `<project>`)의 다음 상태를 확인합니다.
 
+- 현재 OS와 셸. Windows에서는 Git for Windows의 Git Bash여야 합니다.
+  PowerShell이나 cmd 세션이면 부트스트랩 스크립트를 실행하지 말고 Git Bash로
+  전환합니다.
 - `<project>/AGENTS.md` 존재 여부
 - `<project>/.agent-relay/` 디렉토리 존재 여부
 - `<project>/.agent-relay/VERSION` 존재 여부 (이미 설치된 경우 업데이트 기준)
@@ -134,6 +137,7 @@ Agent Relay v<x.x> 부트스트랩을 완료했습니다. 이제 이 프로젝�
 | `.agent-relay/DIRECTOR.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/PLANNER.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
 | `.agent-relay/EXECUTOR.md` | 로컬 수정이 없거나 안전히 구분되면 최신 upstream으로 갱신 |
+| `.agent-relay/scripts/artifact-check` | 산출물 경로, 미작성 placeholder, 필수 완료 필드를 검증하는 공통 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
 | `.agent-relay/scripts/director-tool` | task 생성, 이벤트 추가, 단계 gate, 상태 요약, 위임 프롬프트를 처리하는 Director-owned CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
 | `.agent-relay/scripts/relay-lint` | relay 상태 검증 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |
 | `.agent-relay/scripts/merge-agent-block` | Agent Relay 블록 병합 CLI. 로컬 커스터마이징이 없을 때 upstream 버전으로 교체 |

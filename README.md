@@ -37,6 +37,15 @@ agent-relay 최신화해줘
 
 설치와 업데이트의 파일별 처리 규칙은 [BOOTSTRAP.md](BOOTSTRAP.md)에 있다.
 
+### 지원 환경
+
+- macOS와 Linux: POSIX `sh` 환경
+- Windows: Git for Windows의 Git Bash
+
+Windows 네이티브 PowerShell과 cmd는 Agent Relay 스크립트 실행 환경으로
+지원하지 않는다. Windows에서는 설치, 업데이트, `director-tool`, `relay-lint`,
+회귀 테스트를 모두 Git Bash에서 실행한다.
+
 ## 작업 흐름
 
 간단한 설명이나 질의응답은 기록하지 않는다. 기록할 작업은 범위에 따라 나눈다.
@@ -103,6 +112,7 @@ Standard 작업의 산출물은 `.agent-relay/runs/`에 같은 `<KEY>`로 저장
 - 사용자에게 보고된 결함은 증거를 확보한 뒤 수정하고 스모크 테스트를 남긴다.
 - `.agent-relay/`에 비밀정보, 자격증명, 개인정보, 민감한 운영정보를 저장하지 않는다.
 - 커밋 전이나 업데이트 후에는 `relay-lint`로 기록 상태를 검증한다.
+- Agent Relay 자체 스크립트 변경은 `./tests/agent-relay-scripts.sh`로 회귀 테스트한다.
 
 ## 더 읽기
 
