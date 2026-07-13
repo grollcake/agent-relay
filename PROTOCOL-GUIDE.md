@@ -8,9 +8,9 @@
 Agent Relay는 **Director / Planner / Executor 에이전트 팀**이 역할을 나누고, 기록 기반으로 작업을 이어가기 위한 파일 기반 협업 규약입니다. 프로젝트 안에 작업 분류, 이벤트 타임라인, 라운드 산출물, 작업 맥락 전달 표준을 남기는 것입니다.
 
 Agent Relay는 macOS/Linux/Windows의 amd64·arm64용 단일 Go 바이너리로
-배포하며 설치된 프로젝트에는 Go 런타임이 필요하지 않습니다. Windows에서도
-네이티브로 동작하지만 저장소와 Git 작업의 운영 셸은 Git for Windows Git
-Bash로 고정합니다.
+배포하며 설치된 프로젝트에는 Go 런타임이나 특정 셸이 필요하지 않습니다.
+Windows에서는 PowerShell, cmd, Git Bash에서 실행할 수 있습니다. Git 연동
+기능을 사용하려면 `git`이 `PATH`에 있어야 합니다.
 
 ## 2. 에이전트 팀 구성
 

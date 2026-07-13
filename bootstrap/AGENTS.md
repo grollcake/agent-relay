@@ -25,7 +25,8 @@ only your role file:
 6. Keep older `.agent-relay/runs/` rounds append-only; update `GUIDANCE.md` and
    `lesson-learned/` only after user approval; never store secrets or sensitive
    data in `.agent-relay/`.
-7. Agent Relay uses the native `.agent-relay/bin/agent-relay[.exe]` Go binary.
-   On Windows, use Git for Windows Git Bash as the operational shell.
+7. Agent Relay uses the native `.agent-relay/bin/agent-relay[.exe]` Go binary
+   and does not require a specific shell. Git-integrated commands require
+   `git` to be available on `PATH`.
 
 </agent-relay-rules>

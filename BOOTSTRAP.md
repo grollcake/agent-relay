@@ -11,8 +11,8 @@
 
 부트스트랩을 시작하기 전, 사용자 프로젝트(이하 `<project>`)의 다음 상태를 확인합니다.
 
-- 현재 OS와 아키텍처(`darwin|linux|windows`, `amd64|arm64`) 및 셸. Windows의
-  운영 셸은 Git for Windows의 Git Bash입니다.
+- 현재 OS와 아키텍처(`darwin|linux|windows`, `amd64|arm64`) 및 셸. 특정 셸은
+  필수가 아니며, Git 연동 작업에는 `git`이 `PATH`에 있어야 합니다.
 - `<project>/AGENTS.md` 존재 여부
 - `<project>/.agent-relay/` 디렉토리 존재 여부
 - `<project>/.agent-relay/VERSION` 존재 여부 (이미 설치된 경우 업데이트 기준)

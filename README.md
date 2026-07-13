@@ -41,14 +41,18 @@ agent-relay 최신화해줘
 
 - macOS: amd64, arm64
 - Linux: amd64, arm64
-- Windows: amd64, arm64; 운영 셸은 Git for Windows의 Git Bash
+- Windows: amd64, arm64
 
 Agent Relay는 Go로 컴파일된 단일 네이티브 바이너리이며 설치된 프로젝트에는
-Go 런타임이 필요하지 않다. Windows 바이너리도 네이티브로 동작하지만 저장소와
-Git 작업의 기준 셸은 Git Bash로 고정한다. 소스 빌드와 테스트에는 Go 1.26 이상이
-필요하다.
+Go 런타임이나 특정 셸이 필요하지 않다. Windows에서는 PowerShell, cmd, Git
+Bash에서 실행할 수 있다. Git 연동 기능을 사용하려면 `git`이 `PATH`에 있어야
+한다. 소스 빌드와 테스트에는 Go 1.26 이상이 필요하다.
 
 ## 작업 흐름
+
+Agent Relay 세션을 시작할 때 Director는 브랜치 전략을 사용자에게 확인한다.
+세션 내에서 항상 작업 브랜치를 사용할지, 사용하지 않을지, 작업마다 확인할지
+정한다.
 
 간단한 설명이나 질의응답은 기록하지 않는다. 기록할 작업은 범위에 따라 나눈다.
 
@@ -60,13 +64,18 @@ Git 작업의 기준 셸은 Git Bash로 고정한다. 소스 빌드와 테스트
 Standard 작업의 기본 흐름은 다음과 같다.
 
 1. Director가 요청을 분류한다.
-2. Planner가 계획과 성공 기준을 작성한다.
-3. Executor가 계획을 구현하고 검증한다.
-4. Planner가 구현 결과를 검토한다.
-5. Director가 결과를 사용자에게 보고하고 승인을 요청한다.
-6. 사용자가 명시적으로 승인하면 Director가 작업을 종료한다.
+2. 세션의 브랜치 전략을 적용하고, 필요하면 작업 브랜치를 생성해 전환한다.
+3. Planner가 계획과 성공 기준을 작성한다.
+4. Executor가 계획을 구현하고 검증한다.
+5. Planner가 구현 결과를 검토한다.
+6. 승인 준비가 끝나면 Director가 결과를 사용자에게 보고하고 승인을 요청한다.
+7. 사용자가 명시적으로 승인하면 Director가 작업을 종료하고, 전용 작업
+   브랜치를 사용했다면 기본 브랜치에 병합한다.
 
-`REVIEW`는 승인에 필요한 증거이지 승인이 아니다. 사용자 피드백이나 blocker가 있으면 Executor와 Planner 단계를 반복한다.
+`REVIEW`는 승인에 필요한 증거이지 승인이 아니다. 검토에 blocker가 있으면 같은
+`task-id`로 다음 `EXECUTED → REVIEW` 라운드를 진행한다. 사용자가 승인 대신
+피드백을 주면 Director가 `FEEDBACK`을 기록한 뒤 `EXECUTED → REVIEW` 라운드를
+진행한다.
 
 ## 이벤트와 산출물
 
@@ -95,10 +104,13 @@ Standard 작업의 산출물은 `.agent-relay/runs/`에 같은 `<KEY>`로 저장
 ├── DIRECTOR.md
 ├── PLANNER.md
 ├── EXECUTOR.md
+├── HOW-TO-UPDATE.md
+├── VERSION
 ├── GUIDANCE.md
 ├── LESSON-LEARNED.md
 ├── bin/
-│   └── agent-relay[.exe]
+│   ├── agent-relay[.exe]
+│   └── SHA256SUMS
 ├── lesson-learned/
 ├── relay.log
 ├── runs/
@@ -106,6 +118,9 @@ Standard 작업의 산출물은 `.agent-relay/runs/`에 같은 `<KEY>`로 저장
 ```
 
 `.agent-relay/`는 프로젝트 인수인계 데이터이므로 Git에 포함한다.
+
+`agent-relay[.exe]`는 Director가 작업 상태 관리와 검증에 사용하는 CLI다. 자세한
+명령 사용법은 [Director 프로토콜](bootstrap/.agent-relay/DIRECTOR.md)을 따른다.
 
 ## 개발과 바이너리 빌드
 
@@ -125,8 +140,9 @@ go run ./cmd/build-release
 - Standard 작업은 사용자의 명시적 승인 전에는 종료하지 않는다.
 - 사용자에게 보고된 결함은 증거를 확보한 뒤 수정하고 스모크 테스트를 남긴다.
 - `.agent-relay/`에 비밀정보, 자격증명, 개인정보, 민감한 운영정보를 저장하지 않는다.
-- 커밋 전이나 업데이트 후에는 `.agent-relay/bin/agent-relay[.exe] lint`로 기록 상태를 검증한다.
-- Agent Relay 자체 변경은 `go test ./...`로 회귀 테스트한다.
+- Agent Relay가 설치된 프로젝트에서는 커밋 전이나 업데이트 후
+  `.agent-relay/bin/agent-relay[.exe] lint`로 기록 상태를 검증한다.
+- 이 저장소 자체의 변경은 `go test ./...`로 회귀 테스트한다.
 
 ## 더 읽기
 

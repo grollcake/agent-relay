@@ -116,5 +116,6 @@ read `.agent-relay/HOW-TO-UPDATE.md` first. Bootstrap and update are recording
 targets, not excluded meta work.
 
 Agent Relay uses the native `.agent-relay/bin/agent-relay[.exe]` Go binary and
-does not require Go in installed projects. On Windows, use Git for Windows Git
-Bash as the operational shell for Agent Relay and Git workflows.
+does not require Go or a specific shell in installed projects. On Windows, it
+can run from PowerShell, cmd, or Git Bash. Git-integrated commands require
+`git` to be available on `PATH`.
