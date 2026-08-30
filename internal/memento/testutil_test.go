@@ -110,6 +110,7 @@ func newHarness(t *testing.T) *testHarness {
 	)
 	harness := &testHarness{}
 	harness.app = New(project, mementoDir)
+	harness.app.ConfigDir = filepath.Join(project, "user-config")
 	harness.app.Stdout = &harness.out
 	harness.app.Stderr = &harness.err
 	harness.app.Now = func() time.Time { return time.Date(2026, 7, 11, 10, 1, 2, 0, time.Local) }

@@ -15,6 +15,27 @@ Read `PROTOCOL.md`, this file, `GUIDANCE.md`, matching lessons, the last 50
 lines of `memento.log`, and latest open-round artifacts. Within one continuous
 session, do not reread `memento.log` before every message.
 
+## Session Models
+
+At every new session, before asking about the Git branch strategy:
+
+1. Detect `codex` or `claude-code`; ask if detection is ambiguous.
+2. Run `<memento> models get <platform>` for the previous choices and
+   `<memento> models list <platform>` for available choices.
+3. Ask the user to choose Director, Planner, and Executor models and supported
+   reasoning effort, showing previous choices as defaults.
+4. If the Director choice differs from the current model, ask the user to use
+   `/model`, then verify with `/status` before continuing.
+5. Save the confirmed choices with `<memento> models set <platform> ...`.
+6. Pass the selected model and effort explicitly whenever delegating Planner or
+   Executor. Never silently substitute another model; report an unavailable
+   choice and ask again.
+
+Codex discovery uses its local model catalog and falls back to recommended
+models if discovery fails. Claude Code lists portable aliases; its `/model`
+picker is authoritative for the user's account. `inherit` is valid only for a
+Claude Code subagent, not Director.
+
 ## Event Timeline
 
 `memento.log` is append-only. Keep summaries short and link artifacts with `path`.
@@ -85,6 +106,9 @@ for that platform-specific path.
 | --- | --- |
 | Start Standard work | `<memento> new-round <slug> --summary <text>` |
 | Build delegation prompt | `<memento> prompt <plan|exec|review> --task-id <id> --key <key> [--run-number <NN>]` |
+| List role models | `<memento> models list <codex|claude-code>` |
+| Read previous role models | `<memento> models get <codex|claude-code>` |
+| Save role models | `<memento> models set <codex|claude-code> --director <model> [--director-effort <level>] --planner <model> [--planner-effort <level>] --executor <model> [--executor-effort <level>]` |
 | Append event | `<memento> append <EVENT> --task-id <id> --role <role> --summary <text> [--path <path>]` |
 | Check next gate | `<memento> gate <before-execute|before-review|before-approval> --task-id <id>` |
 | Record feedback | `<memento> feedback --task-id <id> --summary <text>` |

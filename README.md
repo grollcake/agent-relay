@@ -52,9 +52,13 @@ Bash에서 실행할 수 있다. Git 연동 기능을 사용하려면 `git`이 `
 
 ## 작업 흐름
 
-Memento AI 세션을 시작할 때 Director는 브랜치 전략을 사용자에게 확인한다.
-세션 내에서 항상 작업 브랜치를 사용할지, 사용하지 않을지, 작업마다 확인할지
-정한다.
+Memento AI 세션을 시작할 때마다 Director는 Codex 또는 Claude Code를 감지하고
+Director·Planner·Executor 모델을 사용자에게 확인한다. 직전 선택을 기본값으로
+보여 주며, 확정된 선택은 저장소가 아닌 OS 사용자 설정에 플랫폼별로 저장한다.
+Director 모델은 `/model`로 맞추고 Planner와 Executor 모델은 위임할 때 명시한다.
+
+모델 선택 후 Director는 브랜치 전략을 사용자에게 확인한다. 세션 내에서 항상
+작업 브랜치를 사용할지, 사용하지 않을지, 작업마다 확인할지 정한다.
 
 간단한 설명이나 질의응답은 기록하지 않는다. 기록할 작업은 범위에 따라 나눈다.
 
@@ -129,6 +133,14 @@ Standard 작업의 산출물은 `.memento/runs/`에 같은 `<KEY>`로 저장한�
 ```text
 go test ./...
 go run ./cmd/build-release
+```
+
+역할별 모델 설정 명령은 다음과 같다.
+
+```text
+memento models list <codex|claude-code>
+memento models get <codex|claude-code>
+memento models set <codex|claude-code> --director <model> --planner <model> --executor <model>
 ```
 
 `build-release`는 `CGO_ENABLED=0`으로 지원 플랫폼 6종을 빌드하고

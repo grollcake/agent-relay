@@ -43,8 +43,12 @@ own scope instead of relying on an earlier role.
   Director coordinates Planner -> Executor -> Planner review, preferably in the
   background, while staying available to the user.
 
-At session start, Director asks whether to use a Git branch strategy for this
-Memento AI session: always use branches, do not use branches, or ask per task.
+At every session start, Director first detects Codex or Claude Code and asks the
+user to choose the Director, Planner, and Executor models. Show the saved choices
+from `memento models get <platform>` as defaults and the currently available
+choices from `memento models list <platform>`. Save the result with `memento
+models set`; preferences are user-local and separate for each platform. Then ask
+whether to always use branches, not use branches, or ask per task.
 
 ## Round Artifacts
 

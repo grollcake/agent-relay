@@ -16,24 +16,34 @@ import (
 type App struct {
 	ProjectDir string
 	MementoDir string
+	ConfigDir  string
 	Stdout     io.Writer
 	Stderr     io.Writer
 	Now        func() time.Time
 	Random     io.Reader
+	Command    func(string, ...string) ([]byte, error)
 	GOOS       string
 	GOARCH     string
 }
 
 func New(projectDir, mementoDir string) *App {
+	configDir, _ := os.UserConfigDir()
+	if configDir == "" {
+		configDir = os.TempDir()
+	}
 	return &App{
 		ProjectDir: projectDir,
 		MementoDir: mementoDir,
+		ConfigDir:  filepath.Join(configDir, "memento"),
 		Stdout:     os.Stdout,
 		Stderr:     os.Stderr,
 		Now:        time.Now,
 		Random:     rand.Reader,
-		GOOS:       runtime.GOOS,
-		GOARCH:     runtime.GOARCH,
+		Command: func(name string, args ...string) ([]byte, error) {
+			return exec.Command(name, args...).Output()
+		},
+		GOOS:   runtime.GOOS,
+		GOARCH: runtime.GOARCH,
 	}
 }
 
@@ -93,6 +103,8 @@ func (a *App) Run(args []string) error {
 		return a.runStatus(args)
 	case "subagent-prompt", "prompt":
 		return a.runPrompt(args)
+	case "models":
+		return a.runModels(args)
 	case "check-artifact":
 		return a.runCheckArtifact(args)
 	case "lint":
@@ -120,6 +132,7 @@ func (a *App) usage() {
   memento feedback --task-id <id> --summary <text>
   memento status [--task-id <id>]
   memento prompt <plan|review|exec> --task-id <id> --key <key> [--run-number <NN>]
+  memento models <list|get|set> <codex|claude-code> [model options]
   memento check-artifact <PLANNED|EXECUTED|REVIEW|CLOSE> <path> [task-id]
   memento lint
   memento merge-agent-block <target-file> <source-file>

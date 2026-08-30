@@ -28,7 +28,7 @@ Planner와 Executor는 **Director를 통해서만** 통신합니다. 사용 도�
 
 ## 3. 작업 분류
 
-세션 시작 시 Director는 이번 Memento AI 세션에서 Git 브랜치 전략을 사용할지 묻습니다: 항상 브랜치 사용, 브랜치 사용 안 함, 작업마다 확인.
+새 세션을 시작할 때마다 Director는 먼저 Codex 또는 Claude Code를 감지하고 Director·Planner·Executor 모델을 묻습니다. `memento models get <platform>`의 직전 선택을 기본값으로, `memento models list <platform>`의 현재 목록을 선택지로 보여 줍니다. Director 모델이 현재 모델과 다르면 사용자가 `/model`로 바꾸고 `/status`로 확인한 뒤 계속합니다. Planner와 Executor 모델 및 reasoning effort는 위임할 때 명시하며, 확정값은 `memento models set`으로 OS 사용자 설정에 플랫폼별 저장합니다. 그 다음 이번 Memento AI 세션에서 Git 브랜치 전략을 사용할지 묻습니다: 항상 브랜치 사용, 브랜치 사용 안 함, 작업마다 확인.
 
 Director는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판단합니다. 기록이 필요한 요청이면 필수 지침·교훈 확인을 마친 뒤 `Direct` 또는 `Standard`로 분류합니다. Memento AI **부트스트랩**과 **업데이트**(`.memento/`·Memento AI 지시 파일 동기화)는 기록 제외가 아니며, Director가 직접 수행하면 `Direct`로 `REQUEST → RUN_DONE`을 기록합니다.
 
@@ -132,7 +132,7 @@ Director는 먼저 요청이 명백한 기록 제외 대상인지 가볍게 판�
 - `.memento/bin/memento[.exe]`는 Director-owned 도구입니다. Director는 routine 흐름에서 `new-round`, `feedback`, `append`, `gate`, `status`, `prompt`를 사용합니다.
 - 모든 `memento.log` 이벤트는 Director가 `memento append`로 추가합니다. 도구가 없거나 실패할 때만 직접 로그를 읽고 수동으로 복구합니다.
 - Director는 다음 단계 위임 전에 `memento gate ...`로 직전 단계 이벤트를 확인합니다. 확인하지 못하면 다음 단계 위임을 중단하고 Director 소유의 로그 추가 또는 수정 작업을 완료합니다.
-- 커밋 전이나 업데이트 후에는 `memento lint`로 relay 상태를 검증합니다.
+- 커밋 전이나 업데이트 후에는 `memento lint`로 Memento AI 상태를 검증합니다.
 
 필수 게이트:
 
@@ -187,7 +187,7 @@ Planner/Executor는 가능하면 같은 컨텍스트를 유지하되, 다음 중
 
 ### 위임 시 필수 필드
 
-위임 프롬프트는 Director가 `memento prompt` 출력에 명시 요구사항만 덧붙여 만듭니다. 성공 기준·검증·리스크는 Planner가 `PLAN`에서 정의하고 Executor와 검토자는 이를 따릅니다. 하위 AI는 `memento`로 상태를 변경하거나 `memento.log`를 쓰지 않고, 완료와 제안 summary만 Director에게 알립니다.
+위임 프롬프트는 Director가 `memento prompt` 출력에 명시 요구사항만 덧붙여 만듭니다. Director는 세션 시작 때 확정한 역할별 모델과 reasoning effort를 호스트의 하위 에이전트 생성 옵션에 명시하며, 사용할 수 없는 모델을 임의로 대체하지 않습니다. 성공 기준·검증·리스크는 Planner가 `PLAN`에서 정의하고 Executor와 검토자는 이를 따릅니다. 하위 AI는 `memento`로 상태를 변경하거나 `memento.log`를 쓰지 않고, 완료와 제안 summary만 Director에게 알립니다.
 
 ### 보고 시 필수 필드
 
