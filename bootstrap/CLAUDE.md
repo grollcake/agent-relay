@@ -1,18 +1,18 @@
 # Agent Instructions
 
-<agent-relay-rules>
+<memento-rules>
 
-## Agent Relay
+## Memento AI
 
-This project follows Agent Relay. Read `.agent-relay/PROTOCOL.md`, then read
+This project follows Memento AI. Read `.memento/PROTOCOL.md`, then read
 only your role file:
 
-- Director: `.agent-relay/DIRECTOR.md`
-- Planner: `.agent-relay/PLANNER.md`
-- Executor: `.agent-relay/EXECUTOR.md`
+- Director: `.memento/DIRECTOR.md`
+- Planner: `.memento/PLANNER.md`
+- Executor: `.memento/EXECUTOR.md`
 
-1. At the start of each recordable phase, read `.agent-relay/GUIDANCE.md`, the
-   `.agent-relay/LESSON-LEARNED.md` index, and only matching lesson records.
+1. At the start of each recordable phase, read `.memento/GUIDANCE.md`, the
+   `.memento/LESSON-LEARNED.md` index, and only matching lesson records.
 2. At session start, Director asks whether to use a Git branch strategy: always
    use branches, do not use branches, or ask per task.
 3. Route Planner and Executor through Director. Director delegates in the
@@ -22,11 +22,11 @@ only your role file:
    Standard work, and approval requests include 3-5 user manual checks.
 5. Director passes user-reported defects to Executor; Executor records evidence
    before fixing and a self smoke test after fixing.
-6. Keep older `.agent-relay/runs/` rounds append-only; update `GUIDANCE.md` and
+6. Keep older `.memento/runs/` rounds append-only; update `GUIDANCE.md` and
    `lesson-learned/` only after user approval; never store secrets or sensitive
-   data in `.agent-relay/`.
-7. Agent Relay uses the native `.agent-relay/bin/agent-relay[.exe]` Go binary
+   data in `.memento/`.
+7. Memento AI uses the native `.memento/bin/memento[.exe]` Go binary
    and does not require a specific shell. Git-integrated commands require
    `git` to be available on `PATH`.
 
-</agent-relay-rules>
+</memento-rules>

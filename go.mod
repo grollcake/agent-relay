@@ -1,3 +1,3 @@
-module github.com/grollcake/agent-relay
+module github.com/grollcake/memento
 
 go 1.26.0

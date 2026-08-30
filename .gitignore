@@ -7,5 +7,5 @@
 .idea/
 .vscode/
 
-# Agent Relay state is project handoff data and must be committed.
-# Do not add a generic ".agent-relay/" rule here.
+# Memento AI state is project handoff data and must be committed.
+# Do not add a generic ".memento/" rule here.
